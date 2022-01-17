@@ -1,90 +1,122 @@
+import datetime
+import os
+
 import tweepy
-import csv
-import calendar
+from dotenv import load_dotenv
 
-from rest_framework.authtoken.models import Token
-from django.contrib.auth.models import User
+from .models import (
+    TwitterUserInfo,
+)
+from .utils.getters import (
+    get_hashtags,
+    get_urls,
+    get_user_mentions,
+    get_media_url,
+)
+from .utils.savers import (
+    save_tweets_to_csv,
+)
+from .secondary_services import (
+    define_tweet_type,
+)
+
+load_dotenv()
+
+consumer_key = os.getenv('CONSUMER_KEY')
+consumer_secret = os.getenv('CONSUMER_SECRET')
+access_key = os.getenv('ACCESS_KEY')
+access_secret = os.getenv('ACCESS_SECRET')
 
 
-consumer_key = 'u4SD5KlVGm59ftBTb69glEtp1'
-consumer_secret = 'PCSFhTShUoKzASdExZh5pz54nP1v4uo0KheBotPpZUUoQ3r1sV'
-access_key = '2308267840-G9kog927ZlVhGvoUsXbIt16ZQLk0eUkeuteieA6'
-access_secret = '6ZW7GNAZTG6tW4YXYShawMgGbv5ri4kfZvgDF1UAbSb4a'
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_key, access_secret)
+api = tweepy.API(auth)
+
+
+def get_user_info(screen_name):
+    user = api.get_user(screen_name=screen_name)
+
+    query = TwitterUserInfo(
+        id = user.id,
+        screen_name = user.screen_name,
+        name = user.name,
+        profile_image_url = user.profile_image_url,
+        description = user.description,
+        created_at = user.created_at,
+        url = user.url,
+        location = user.location,
+        followers_count = user.followers_count,
+        friends_count = user.friends_count,
+        favourites_count = user.favourites_count,
+        statuses_count = user.statuses_count,
+        listed_count = user.listed_count,
+        is_protected = user.protected,
+        is_verified = user.verified
+    )
+    query.save()
 
 
 def get_all_tweets(screen_name):
-    auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-    auth.set_access_token(access_key, access_secret)
-    api = tweepy.API(auth)
-    
-    alltweets = []  
-    
-    new_tweets = api.user_timeline(screen_name = screen_name,count=200)
-    
-    alltweets.extend(new_tweets)
+    all_tweets = []
+    tweets = []
+    result = []
 
-    oldest = alltweets[-1].id - 1
-    
-    while len(new_tweets) > 0:
-        print(f"getting tweets before {oldest}")
-        
-        new_tweets = api.user_timeline(screen_name = screen_name,count=200,max_id=oldest)
-        
-        alltweets.extend(new_tweets)
-        
-        oldest = alltweets[-1].id - 1
-        
-        print(f"...{len(alltweets)} tweets downloaded so far")
-    
+    try:
+        tweets = api.user_timeline(screen_name=screen_name, count=200, tweet_mode='extended')
+    except tweepy.errors.Unauthorized:
+        return []
 
-    for item in alltweets[0].user._json:
-        print(item, ' : ', alltweets[0].user._json[item])
+    if not tweets:
+        return []
+
+    all_tweets.extend(tweets)
+    oldest_id = all_tweets[-1].id
+
+    while True:
+        tweets = None
+        try:
+            tweets = api.user_timeline(
+                screen_name=screen_name, 
+                count=200, 
+                max_id=oldest_id-1, 
+                tweet_mode='extended'
+            )
             
-    tweets = [{'tweet_id': tweet.id_str, 'tweet_created_at': tweet.created_at, 'tweet_text': tweet.text} for tweet in alltweets]
+        except tweepy.errors.Unauthorized: pass
+        
+        if tweets != None:
+            if len(tweets) == 0:
+                break
 
-    return tweets
+            all_tweets.extend(tweets)
+            oldest_id = tweets[-1].id
 
+    for tweet in all_tweets:
+        tweet_type_info = define_tweet_type(tweet)
+        
+        coordinates = 'undefined'
+        if tweet.coordinates:
+            coordinates = tweet.coordinates.get('coordinates')
+        
+        if not tweet_type_info:
+            break
 
-def save_tweets_csv(screen_name, tweets):
-    with open(f'new_{screen_name}_tweets.csv', 'w') as f:
-        writer = csv.writer(f)
-        writer.writerow(["id","created_at","text"])
-        writer.writerows(tweets)
-
-
-def get_tweet_dates(tweets):
-    dates = {}
-    for tweet in tweets:
-        if dates.get(str(tweet['tweet_created_at'].date())): 
-            dates[str(tweet['tweet_created_at'].date())] += 1
-        else:
-            dates[str(tweet['tweet_created_at'].date())] = 1
-    return dates
-
-
-def get_tweet_time(tweets):
-    time = {}
-    for tweet in tweets:
-        if time.get(str(tweet['tweet_created_at'].time())[0:2]): 
-            time[str(tweet['tweet_created_at'].time())[0:2]] += 1
-        else:
-            time[str(tweet['tweet_created_at'].time())[0:2]] = 1
-    return time
-
-
-def get_tweet_weekday(tweets):
-    weekdays = {}
-    for tweet in tweets:
-        if weekdays.get(calendar.day_name[tweet['tweet_created_at'].weekday()]): 
-            weekdays[calendar.day_name[tweet['tweet_created_at'].weekday()]] += 1
-        else:
-            weekdays[calendar.day_name[tweet['tweet_created_at'].weekday()]] = 1
-    return weekdays
-
-
-def au():
-    token = Token.objects.create(user='@wh1Co4nkIcsfUnR')
-    print(token.key)
-
-    for user in User.objects.all():
-        print(user)
+        result.append({
+            'id': tweet.id,
+            'created_at': str(tweet.created_at),
+            'text': tweet.full_text.replace('"', ''),
+            'lang': tweet.lang,
+            'retweet_count': tweet.retweet_count,
+            'favourite_count': tweet.favorite_count,
+            'hashtags': get_hashtags(tweet).replace('"', ''),
+            'urls': get_urls(tweet).replace('"', ''),
+            'user_mentions': get_user_mentions(tweet).replace('"', ''),
+            'coordinates': coordinates,
+            'source': tweet.source,
+            'tweet_type': tweet_type_info.get('tweet_type'),
+            'media': get_media_url(tweet).replace('"', ''),
+            'original_screen_name': tweet_type_info.get('original_screen_name'),
+            'user_id': tweet.user.id
+        }) 
+    
+    return result
