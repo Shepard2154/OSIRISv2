@@ -21,7 +21,7 @@ class TwitterUserInfo(models.Model):
     updated_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'twitter_userInfo'
+        db_table = 'twitter_userinfo'
 
     def __str__(self):
         return self.id

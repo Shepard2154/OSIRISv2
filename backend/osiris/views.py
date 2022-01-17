@@ -154,11 +154,6 @@ class DownloadUserInfo(APIView):
     def get(self, request, screen_name):
         get_user_info(screen_name)
         desired_user = TwitterUserInfo.objects.get(screen_name=screen_name).__dict__
-        # удалить костыли к production 
-        desired_user['updated_at'] = datetime.now()
-        desired_user['location'] = 'undefined'
-        desired_user['url'] = 'underfined'
-        # удалить костыли к production
         serializer = self.serializer_class(data=desired_user)
         serializer.is_valid(raise_exception=True)
         
@@ -175,24 +170,13 @@ class TweetCreateAPIView(CreateAPIView):
 class DownloadTweets(APIView):
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsAuthenticated]
-    serializer_class = TweetCreateSerializer
+    serializer_class = TweetListSerializer
 
     def get(self, request, screen_name):
-        tweets = get_all_tweets(screen_name)
-        for tweet in tweets:
-            serializer = self.serializer_class(data=tweet)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+        get_all_tweets(screen_name)
 
-        all_tweets_of_user = TwitterTweet.objects.all()
-        serializer = TweetListSerializer(data=all_tweets_of_user.__dict__)
-        serializer.is_valid(raise_exception=True) 
+        user_id = TwitterUserInfo.objects.get(screen_name=screen_name).id
+        tweets = TwitterTweet.objects.all().filter(user_id=user_id)
+        serializer = self.serializer_class(instance=tweets, many=True)
         
-        data = serializer.data
-        print('data!: ', data)
-        print('sasadasdsadas')
-        # dates = get_tweet_dates(tweets)
-        # weekdays = get_tweet_weekday(tweets) 
-        # time = get_tweet_time(tweets)
-        
-        return Response(data)
+        return Response(serializer.data)

@@ -56,25 +56,25 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
 
 class UserRetrieveSerializer(serializers.Serializer):
-        id = serializers.IntegerField()
-        screen_name = serializers.CharField()
-        name = serializers.CharField()
-        profile_image_url = serializers.CharField()
-        description = serializers.CharField()
-        created_at = serializers.DateTimeField()
-        url = serializers.CharField()
-        location = serializers.CharField()
-        followers_count = serializers.IntegerField()
-        friends_count = serializers.IntegerField()
-        favourites_count = serializers.IntegerField()
-        statuses_count = serializers.IntegerField()
-        listed_count = serializers.IntegerField()
-        is_protected = serializers.BooleanField()
-        is_verified = serializers.BooleanField()
-        updated_at = serializers.DateTimeField()
+    id = serializers.IntegerField()
+    screen_name = serializers.CharField()
+    name = serializers.CharField()
+    profile_image_url = serializers.CharField()
+    description = serializers.CharField()
+    created_at = serializers.DateTimeField()
+    url = serializers.CharField()
+    location = serializers.CharField()
+    followers_count = serializers.IntegerField()
+    friends_count = serializers.IntegerField()
+    favourites_count = serializers.IntegerField()
+    statuses_count = serializers.IntegerField()
+    listed_count = serializers.IntegerField()
+    is_protected = serializers.BooleanField()
+    is_verified = serializers.BooleanField()
+    updated_at = serializers.DateTimeField()
 
-        def validate(self, data):
-            return data
+    def validate(self, data):
+        return data
 
 
 class LoginSerializer(serializers.Serializer):
