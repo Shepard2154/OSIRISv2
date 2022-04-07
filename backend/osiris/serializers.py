@@ -1,4 +1,3 @@
-from enum import auto
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
@@ -7,6 +6,8 @@ from rest_framework import serializers
 from .models import (
     TwitterUserInfo, 
     TwitterTweet,
+    TwitterRelations,
+    TwitterTweetsStatistics,
 )
 
 
@@ -37,6 +38,12 @@ class TweetCreateSerializer(serializers.ModelSerializer):
 class TweetListSerializer(serializers.ModelSerializer):
     class Meta:
         model = TwitterTweet
+        fields = '__all__'
+
+
+class TweetListStatistics(serializers.ModelSerializer):
+    class Meta:
+        model = TwitterTweetsStatistics
         fields = '__all__'
 
 

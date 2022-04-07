@@ -11,6 +11,8 @@ from .views import (
     Logout,
     DownloadUserInfo,
     DownloadTweets,
+
+    CalculateTweetsStatistics,
 )
 
 
@@ -29,4 +31,5 @@ urlpatterns = [
 
     path('tweets/<str:screen_name>/', DownloadTweets.as_view()),
 
+    path('statistics/<str:screen_name>/', CalculateTweetsStatistics.as_view()),
 ]

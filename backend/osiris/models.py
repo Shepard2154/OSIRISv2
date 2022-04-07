@@ -57,5 +57,22 @@ class TwitterRelations(models.Model):
         db_table = 'twitter_relations'
         unique_together = ['user_id', 'follower_id']
 
+
+class TwitterTweetsStatistics(models.Model):
+    user_id = models.OneToOneField(TwitterUserInfo, db_column='user_id', on_delete=models.CASCADE, primary_key=True)
+    week_time_activity = models.JSONField()
+    date_activity = models.JSONField()
+    week_activity = models.JSONField()
+    devices = models.JSONField()
+    url_mentions = models.JSONField(null=True)
+    user_mentions = models.JSONField(null=True)
+    hashtags = models.JSONField(null=True)
+    quotes = models.JSONField(null=True)
+    type_tweets = models.JSONField()
+    retweets = models.JSONField(null=True)
+
+    class Meta:
+        db_table = 'twitter_tweetsstat'
+
 # hints:
 # число цитат можно определить по числу ссылок на twitter.com
