@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('osiris', '0006_alter_twitterrelations_unique_together'),
+        ('twitter', '0006_alter_twitterrelations_unique_together'),
     ]
 
     operations = [
@@ -18,6 +18,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='twitterrelations',
             name='user_id',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, primary_key=True, serialize=False, to='osiris.twitteruserinfo'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, primary_key=True, serialize=False, to='twitter.twitteruserinfo'),
         ),
     ]

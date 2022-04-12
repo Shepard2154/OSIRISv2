@@ -3,7 +3,5 @@ from django.urls import path, include
 
 
 urlpatterns = [
-    path('twitter/', include('osiris.urls')),
-    path('admin/', admin.site.urls),
-    path('api-auth/', include('rest_framework.urls'))
+    path('twitter/', include('twitter.urls')),
 ]

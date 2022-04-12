@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('osiris', '0008_delete_twitterrelations'),
+        ('twitter', '0008_delete_twitterrelations'),
     ]
 
     operations = [
@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('follower_id', models.PositiveIntegerField()),
-                ('user_id', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='osiris.twitteruserinfo')),
+                ('user_id', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='twitter.twitteruserinfo')),
             ],
             options={
                 'db_table': 'twitter_relations',

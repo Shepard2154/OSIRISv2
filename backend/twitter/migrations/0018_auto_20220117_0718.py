@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('osiris', '0017_auto_20220117_0711'),
+        ('twitter', '0017_auto_20220117_0711'),
     ]
 
     operations = [

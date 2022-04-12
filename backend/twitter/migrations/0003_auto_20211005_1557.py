@@ -7,7 +7,7 @@ import django.utils.timezone
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('osiris', '0002_auto_20210925_1728'),
+        ('twitter', '0002_auto_20210925_1728'),
     ]
 
     operations = [

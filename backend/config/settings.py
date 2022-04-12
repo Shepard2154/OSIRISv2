@@ -37,10 +37,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'corsheaders',
     'rest_framework.authtoken',
     'rest_framework',
-    'osiris.apps.OsirisConfig',
+    'channels',
+
+    'twitter.apps.TwitterConfig',
 ]
 
 MIDDLEWARE = [
@@ -103,6 +106,18 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+ASGI_APPLICATION = "config.asgi.application"
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('localhost', 6379)],
+            # "symmetric_encryption_keys": [SECRET_KEY],
+        },
+    },
+}
+
+
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
@@ -116,4 +131,13 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+MEDIA_ROOT = f'{BASE_DIR}/media'
+MEDIA_URL = '/media/'
+
 CORS_ORIGIN_ALLOW_ALL = True 
+
+proxy = proxy = os.getenv('PROXY_HTTP_2')
+os.environ['http_proxy'] = proxy 
+os.environ['HTTP_PROXY'] = proxy
+os.environ['https_proxy'] = proxy
+os.environ['HTTPS_PROXY'] = proxy

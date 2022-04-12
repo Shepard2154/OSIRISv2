@@ -8,7 +8,7 @@ import django.utils.timezone
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('osiris', '0004_auto_20211011_0848'),
+        ('twitter', '0004_auto_20211011_0848'),
     ]
 
     operations = [
@@ -77,11 +77,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='twittertweet',
             name='user_id',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='osiris.twitteruserinfo'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='twitter.twitteruserinfo'),
         ),
         migrations.AddField(
             model_name='twitterrelations',
             name='user_id',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='osiris.twitteruserinfo'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='twitter.twitteruserinfo'),
         ),
     ]

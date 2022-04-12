@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('osiris', '0019_alter_twittertweet_original_screen_name'),
+        ('twitter', '0019_alter_twittertweet_original_screen_name'),
     ]
 
     operations = [

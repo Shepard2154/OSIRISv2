@@ -74,5 +74,9 @@ class TwitterTweetsStatistics(models.Model):
     class Meta:
         db_table = 'twitter_tweetsstat'
 
+
+class hashtags_chain(models.Model):
+    chain = models.JSONField(null=True)
+
 # hints:
 # число цитат можно определить по числу ссылок на twitter.com

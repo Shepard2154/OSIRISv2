@@ -1,5 +1,5 @@
 import os
-import osiris
+import twitter
 from datetime import datetime
 
 import tweepy
@@ -38,13 +38,6 @@ logger.add("logs/services.log", format="{time} {message}", level="DEBUG", rotati
 
 load_dotenv()
 
-proxy = os.getenv('PROXY_HTTP')
-
-os.environ['http_proxy'] = proxy 
-os.environ['HTTP_PROXY'] = proxy
-os.environ['https_proxy'] = proxy
-os.environ['HTTPS_PROXY'] = proxy
-
 consumer_key = os.getenv('CONSUMER_KEY')
 consumer_secret = os.getenv('CONSUMER_SECRET')
 access_key = os.getenv('ACCESS_KEY')
@@ -53,8 +46,12 @@ access_secret = os.getenv('ACCESS_SECRET')
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_key, access_secret)
-api = tweepy.API(auth)
+api = tweepy.API(auth, wait_on_rate_limit=True)
 
+
+def v1_get_tweet_by_id(id):
+    tweet = api.get_status(id=id)
+    return tweet
 
 def get_user_info(screen_name):
     user = api.get_user(screen_name=screen_name)
@@ -125,7 +122,7 @@ def save_tweets(tweets):
 
         try:
             TwitterTweet.objects.get(pk=tweet.id)  
-        except osiris.models.TwitterTweet.DoesNotExist:
+        except twitter.models.TwitterTweet.DoesNotExist:
             tweet.save()
 
 
