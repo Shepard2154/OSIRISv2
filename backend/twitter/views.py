@@ -17,6 +17,7 @@ from .v1_services import *
 from .statistics import calculate_tweets_type
 from .serializers import *
 from .models import TwitterUserInfo, TwitterTweet
+from .cli import download_mytweets
 
 class TweetCreateAPIView(CreateAPIView):
     permission_classes = [AllowAny]
@@ -94,21 +95,18 @@ class CalculateTweetsStatistics(APIView):
 class MessageSendAPIView(APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request):
-        print('get')
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            "general", {"type": "send_info_to_user_group", "text": {"status": "done"}}
-        )
-
-        return Response({"status": True}, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        msg = request.data["message"]
-        socket_message = f"Message from Oleg's was created!"
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            "general", {"type": "send_last_message", "text": f"{socket_message} {msg}"}
-        )
-
-        return Response({"status": True}, status=status.HTTP_201_CREATED)
+    def get(self, request, hashtag_value, power):
+        if power == 'open':
+            channel_layer = get_channel_layer()
+            for tweet in download_mytweets(hashtag_value):
+                async_to_sync(channel_layer.group_send)(
+                    "general", {"type": "get_tweets", "text": tweet}
+                )
+            return Response({"status": True}, status=status.HTTP_200_OK)
+            
+        elif power == 'close':
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                "general", {"type": "close_scraper", "text": 'done'}
+            )
+            return Response({"status": True}, status=status.HTTP_200_OK)

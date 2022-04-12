@@ -26,12 +26,12 @@ import logging
 from loguru import logger
 import os
 import re
-import base
 import string
 import time
 import typing
 import urllib.parse
 
+from . import base
 
 _logger = logging.getLogger(__name__)
 _API_AUTHORIZATION_HEADER = os.getenv('TWITTER_APIV2')
@@ -618,8 +618,6 @@ class _TwitterAPIScraper(base.Scraper):
 			kwargs['hashtags'] = [o['text'] for o in tweet['entities']['hashtags']]
 		if tweet['entities'].get('symbols'):
 			kwargs['cashtags'] = [o['text'] for o in tweet['entities']['symbols']]
-		# return Tweet(**kwargs)
-		logger.warning(Tweet(**kwargs))
 		return Tweet(**kwargs)
 
 	def _render_text_with_urls(self, text, urls):
