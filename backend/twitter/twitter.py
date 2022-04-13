@@ -659,7 +659,8 @@ class _TwitterAPIScraper(base.Scraper):
 		kwargs['profileBannerUrl'] = user.get('profile_banner_url')
 		if 'ext' in user and (label := user['ext']['highlightedLabel']['r']['ok'].get('label')):
 			kwargs['label'] = self._user_label_to_user_label(label)
-		return User(**kwargs)
+		# return User(**kwargs)
+		return kwargs
 
 	def _user_label_to_user_label(self, label):
 		labelKwargs = {}
@@ -670,7 +671,7 @@ class _TwitterAPIScraper(base.Scraper):
 			labelKwargs['badgeUrl'] = label['badge']['url']
 		if 'longDescription' in label and 'text' in label['longDescription']:
 			labelKwargs['longDescription'] = label['longDescription']['text']
-		return UserLabel(**labelKwargs)
+		return labelKwargs['description']
 
 	@classmethod
 	def cli_construct(cls, argparseArgs, *args, **kwargs):
@@ -783,29 +784,30 @@ class TwitterUserScraper(TwitterSearchScraper):
 		label = None
 		if (labelO := user['affiliates_highlighted_label'].get('label')):
 			label = self._user_label_to_user_label(labelO)
-		return User(
-			username = user['legacy']['screen_name'],
-			id = user['rest_id'],
-			displayname = user['legacy']['name'],
-			description = description,
-			rawDescription = rawDescription,
-			descriptionUrls = [{'text': x.get('display_url'), 'url': x['expanded_url'], 'tcourl': x['url'], 'indices': tuple(x['indices'])} for x in user['legacy']['entities']['description']['urls']],
-			verified = user['legacy']['verified'],
-			created = email.utils.parsedate_to_datetime(user['legacy']['created_at']),
-			followersCount = user['legacy']['followers_count'],
-			friendsCount = user['legacy']['friends_count'],
-			statusesCount = user['legacy']['statuses_count'],
-			favouritesCount = user['legacy']['favourites_count'],
-			listedCount = user['legacy']['listed_count'],
-			mediaCount = user['legacy']['media_count'],
-			location = user['legacy']['location'],
-			protected = user['legacy']['protected'],
-			linkUrl = user['legacy']['entities']['url']['urls'][0]['expanded_url'] if 'url' in user['legacy']['entities'] else None,
-			linkTcourl = user['legacy'].get('url'),
-			profileImageUrl = user['legacy']['profile_image_url_https'],
-			profileBannerUrl = user['legacy'].get('profile_banner_url'),
-			label = label,
-		  )
+
+		return {
+			'username': user['legacy']['screen_name'],
+			'id': user['rest_id'],
+			'displayname': user['legacy']['name'],
+			'description': description,
+			'rawDescription': rawDescription,
+			'descriptionUrls': [{'text': x.get('display_url'), 'url': x['expanded_url'], 'tcourl': x['url'], 'indices': tuple(x['indices'])} for x in user['legacy']['entities']['description']['urls']],
+			'verified': user['legacy']['verified'],
+			'created': email.utils.parsedate_to_datetime(user['legacy']['created_at']),
+			'followersCount': user['legacy']['followers_count'],
+			'friendsCount': user['legacy']['friends_count'],
+			'statusesCount': user['legacy']['statuses_count'],
+			'favouritesCount': user['legacy']['favourites_count'],
+			'listedCount': user['legacy']['listed_count'],
+			'mediaCount': user['legacy']['media_count'],
+			'location': user['legacy']['location'],
+			'protected': user['legacy']['protected'],
+			'linkUrl': user['legacy']['entities']['url']['urls'][0]['expanded_url'] if 'url' in user['legacy']['entities'] else None,
+			'linkTcourl': user['legacy'].get('url'),
+			'profileImageUrl': user['legacy']['profile_image_url_https'],
+			'profileBannerUrl': user['legacy'].get('profile_banner_url'),
+			'label': label,
+		}
 
 	def get_items(self):
 		if self._isUserId:
@@ -839,7 +841,7 @@ class TwitterProfileScraper(TwitterUserScraper):
 
 	def get_items(self):
 		if not self._isUserId:
-			userId = self.entity.id
+			userId = self.entity.get('id')
 		else:
 			userId = self._username
 		paginationParams = {

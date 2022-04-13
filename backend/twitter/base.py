@@ -11,7 +11,7 @@ import time
 import warnings
 
 
-logger.add("logs/hashtags.log", format="{time} {message}", level="DEBUG", rotation="500 MB", compression="zip", encoding='utf-8')
+# logger.add("logs/hashtags.log", format="{time} {message}", level="DEBUG", rotation="500 MB", compression="zip", encoding='utf-8')
 
 
 class _DeprecatedProperty:
@@ -166,10 +166,10 @@ class Scraper:
 		for attempt in range(self._retries + 1):
 			# The request is newly prepared on each retry because of potential cookie updates.
 			req = self._session.prepare_request(requests.Request(method, url, params = params, data = data, headers = headers))
-			logger.info(f'Retrieving {req.url}')
-			logger.debug(f'... with headers: {headers!r}')
-			if data:
-				logger.debug(f'... with data: {data!r}')
+			# logger.info(f'Retrieving {req.url}')
+			# logger.debug(f'... with headers: {headers!r}')
+			# if data:
+				# logger.debug(f'... with data: {data!r}')
 			try:
 				r = self._session.send(req, allow_redirects = allowRedirects, timeout = timeout)
 				
@@ -183,7 +183,7 @@ class Scraper:
 				logger.log(level, f'Error retrieving {req.url}: {exc!r}{retrying}')
 			else:
 				redirected = f' (redirected to {r.url})' if r.history else ''
-				logger.info(f'Retrieved {req.url}{redirected}: {r.status_code}')
+				# logger.info(f'Retrieved {req.url}{redirected}: {r.status_code}')
 				if r.history:
 					for i, redirect in enumerate(r.history):
 						logger.debug(f'... request {i}: {redirect.request.url}: {r.status_code} (Location: {r.headers.get("Location")})')
@@ -194,7 +194,7 @@ class Scraper:
 				msg = f': {msg}' if msg else ''
 
 				if success:
-					logger.debug(f'{req.url} retrieved successfully{msg}')
+					# logger.debug(f'{req.url} retrieved successfully{msg}')
 					return r
 				else:
 					if attempt < self._retries:

@@ -2,26 +2,31 @@ from django.db import models
 from django.utils import timezone  
 
 
-class TwitterUserInfo(models.Model):
+class TwitterUser(models.Model):
     id = models.BigIntegerField(primary_key=True)
-    screen_name = models.CharField(max_length=50, unique=True)
-    name = models.CharField(max_length=50)
-    profile_image_url = models.CharField(max_length=100, default='undefined', blank=True)
-    description = models.CharField(max_length=160, default='undefined', blank=True, null=True)
-    created_at = models.DateTimeField()
-    url = models.CharField(max_length=50, default='undefined', blank=True, null=True)
-    location = models.CharField(max_length=50, default='undefined', blank=True, null=True)
+    screen_name = models.CharField(max_length=250, unique=True)
+    name = models.CharField(max_length=250)
+    twitter_url = models.CharField(max_length=100, default='undefined', blank=True, null=True)
+    profile_image_url = models.CharField(max_length=250, default='undefined', blank=True)
+    description = models.CharField(max_length=2500, default='undefined', blank=True, null=True)
+    hashtags = models.JSONField(null=True)
+    description_urls = models.JSONField(null=True)
+    birthday = models.DateTimeField()
+    created = models.DateTimeField()
+    web = models.CharField(max_length=300, default='undefined', blank=True, null=True)
+    location = models.CharField(max_length=100, default='undefined', blank=True, null=True)
+    category = models.CharField(max_length=200, default='undefined', blank=True, null=True)
+
     followers_count = models.BigIntegerField(default=0, blank=True, null=True)
     friends_count = models.BigIntegerField(default=0, blank=True, null=True)
-    favourites_count = models.BigIntegerField(default=0, blank=True, null=True)
+    likes_count = models.BigIntegerField(default=0, blank=True, null=True)
     statuses_count = models.BigIntegerField(default=0, blank=True, null=True)
     listed_count = models.BigIntegerField(default=0, blank=True, null=True)
-    is_protected = models.BooleanField(default=False)
-    is_verified = models.BooleanField(default=False)
+    
     updated_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'twitter_userinfo'
+        db_table = 'twitter_user'
 
     def __str__(self):
         return self.id
@@ -29,20 +34,28 @@ class TwitterUserInfo(models.Model):
 
 class TwitterTweet(models.Model):
     id = models.BigIntegerField(primary_key=True)
-    created_at = models.DateTimeField(default=timezone.now, blank=True, null=True)
-    text = models.CharField(max_length=500)
+    created = models.DateTimeField(default=timezone.now, blank=True, null=True)
+    text = models.CharField(max_length=2500)
     lang = models.CharField(max_length=10)
-    retweet_count = models.BigIntegerField(default=0, blank=True, null=True)
-    favorite_count = models.BigIntegerField(default=0, blank=True, null=True)
-    hashtags = models.CharField(max_length=500, default=None, blank=True, null=True)
-    urls = models.CharField(max_length=500, default=None, blank=True, null=True)
-    user_mentions = models.CharField(max_length=500, default=None, blank=True, null=True)
-    coordinates = models.CharField(max_length=50, default=None, blank=True, null=True)
     source = models.CharField(max_length=50)
-    tweet_type = models.CharField(max_length=30)
-    media = models.CharField(max_length=500, default=None, blank=True, null=True)
+
+    author_id = models.BigIntegerField(default=0)
+    author_screen_name = models.CharField(max_length=50, default='')
+
+    reply_count = models.BigIntegerField(default=0, blank=True, null=True)
+    retweet_count = models.BigIntegerField(default=0, blank=True, null=True)
+    quote_count = models.BigIntegerField(default=0, blank=True, null=True)
+    likes_count = models.BigIntegerField(default=0, blank=True, null=True)
     original_screen_name = models.CharField(max_length=50, blank=True, null=True) # имя процитированного, ретвитнутого, отвеченного пользователя
-    user_id = models.ForeignKey(TwitterUserInfo, db_column='user_id', on_delete=models.CASCADE)
+    retweet_created = models.DateTimeField(default=timezone.now, blank=True, null=True)
+    retweet_id = models.BigIntegerField(default=0, blank=True, null=True)
+
+    hashtags = models.JSONField(null=True)
+    urls = models.JSONField(null=True)
+    user_mentions = models.JSONField(null=True)
+    coordinates = models.JSONField(null=True)
+
+    updated_at = models.DateTimeField(default=timezone.now, blank=True, null=True)
 
     class Meta:
         db_table = 'twitter_tweet'
@@ -50,33 +63,26 @@ class TwitterTweet(models.Model):
 
 class TwitterRelations(models.Model):
     id = models.AutoField(primary_key=True)
-    user_id = models.ForeignKey(TwitterUserInfo, db_column='user_id', on_delete=models.CASCADE)
+    user_id = models.ForeignKey(TwitterUser, db_column='user_id', on_delete=models.CASCADE)
     follower_id = models.PositiveIntegerField()
+    updated_at = models.DateTimeField(default=timezone.now, blank=True, null=True)
 
     class Meta:
         db_table = 'twitter_relations'
         unique_together = ['user_id', 'follower_id']
 
 
-class TwitterTweetsStatistics(models.Model):
-    user_id = models.OneToOneField(TwitterUserInfo, db_column='user_id', on_delete=models.CASCADE, primary_key=True)
-    week_time_activity = models.JSONField()
-    date_activity = models.JSONField()
-    week_activity = models.JSONField()
-    devices = models.JSONField()
-    url_mentions = models.JSONField(null=True)
-    user_mentions = models.JSONField(null=True)
+
+class TwitterComments(models.Model):
+    author_id = models.BigIntegerField(primary_key=True)
+    author_screen_name = models.CharField(max_length=50)
+    created_at = models.DateTimeField()
+    text = models.CharField(max_length=2500)
     hashtags = models.JSONField(null=True)
-    quotes = models.JSONField(null=True)
-    type_tweets = models.JSONField()
-    retweets = models.JSONField(null=True)
+    urls = models.JSONField(null=True)
+    likes_count = models.IntegerField(null=True)
+    retweets_count = models.IntegerField(null=True)
+    comments_to_comments = models.IntegerField(null=True)
 
     class Meta:
-        db_table = 'twitter_tweetsstat'
-
-
-class hashtags_chain(models.Model):
-    chain = models.JSONField(null=True)
-
-# hints:
-# число цитат можно определить по числу ссылок на twitter.com
+        db_table = 'twitter_comments'

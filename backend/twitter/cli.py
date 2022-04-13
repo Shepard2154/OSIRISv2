@@ -16,12 +16,14 @@ import tempfile
 import json
 import pandas as pd
 import loguru
+from loguru import logger
 
 from . import twitter
 
 
 from channels.db import database_sync_to_async
-from channels.generic.websocket import AsyncWebsocketConsumer
+from asgiref.sync import async_to_sync, sync_to_async 
+from channels.generic.websocket import AsyncWebsocketConsumer, WebsocketConsumer
 
 from channels.exceptions import StopConsumer
 
@@ -253,29 +255,8 @@ def download_mytweets(hashtag_item):
         yield json.loads(tweet.json())
 
 
-class HashtagScraper(AsyncWebsocketConsumer):
-    groups = ["general"]
+def download_username(username):
+    scraper = twitter.TwitterUserScraper(username)
 
-    async def close_scraper(self):
-        try:
-            raise StopConsumer
-        except StopConsumer:
-            await print('Halted scraper')
-
-    async def connect(self):
-        await self.accept()
-        await self.channel_layer.group_add("message", self.channel_name)
-
-    async def get_tweets(self, event):
-        message = event["text"]
-        await self.send(text_data=json.dumps(message))
-
-
-@loguru.logger.catch
-def main():
-    hashtags = ['#ринапаленкова', '#навальный', '#ворывзаконе', '#ультрас', '#цсканавыезде', '#коррупция', '#суицидница', '#анархосиндикализм', '#суицидальноенастроение', '#жалостьксебе', '#АУЕ', '#печаль', '#стоник', '#фксм', '#алексейнавальный', '#хочусдохнуть', '#добив', '#дракадевушек', '#диланклиболт', '#свободныевыборы', '#эрикхаррис', '#ворамсвободу', '#россиябезпутина', '#анархо_синдикализм', '#депрессия', '#забив', '#офвайны', '#путинуходи', '#путинавотставку', '#одиночество', '#обнуление', '#диланклиболд', '#мыждемперемен', '#зенитнавыезде', '#боль', '#томастиджейлейн', '#суицид', '#околофутбола', '#ФанатыСпартака', '#футбольныехулиганы', '#противпутина', '#обнулёныш', '#забивы', '#керченскийстрелок', '#воры', '#вставайроссия', '#забивной', '#чиновники', '#спартакнавыезде', '#офник', '#анархопримитивизм', '#antisystem', '#акаб', '#navalny', '#шакромолодой', '#свободуфургалу', '#мусорабляпидорасы', '#фартумасти', '#ильназбог', '#анархия', '#смертьмусорам', '#черныйдельфин', '#разбитоесердце', '#тимурбекманнсуров', '#доляворовская', '#блатнойжаргон',
-                '#россиябудетсвободной', '#влалиславросляков', '#хватиттерпеть', '#свободунавальному', '#freenavalny', '#диланруф', '#безысходность', '#фанатнепреступник', '#хватит_молчать', '#няпока', '#забивыоф', '#самоубийство', '#скулшутер', '#оукб', '#суицидвыход', '#фанатыцска', '#анархокомунизм', '#розбитоесерце', '#криминальнаяроссия', '#ауежизньворам', '#расходыначиновников', '#протест', '#воровскойзакон', '#владросляков', '#суицыд', '#ericharris1999', '#anarchism', '#сбг', '#казанскийстрелок', '#ямыфургал', '#путинврагроссии', '#дедхасан', '#анархофеменизм', '#schoolshoooter', '#селфхарм', '#anarchy', '#скулшутеры', '#офф', '#тревога', '#свободуполитзаключенным', '#саморазрушение', '#краснобелые', '#едровведро', '#разбитаядуша', '#дзенанархия', '#митинг', '#галявиевильназ', '#ворвзаконе', '#криминал', '#блатной', '#бекмансуров', '#жизньворам', '#сашасевер', '#dylankleblold', '#венывскрыты', '#фклм', '#криминальныймир', '#долойпутина', '#путинвор', '#офники', '#стадионнетюрьма', '#колумбайн', '#путинлжец', '#анархизм', '#сэлфхарм', '#офзабивы']
-    # save_tweets('#ринапаленкова')
-
-    # pool = mp.Pool(len(os.sched_getaffinity(0)))
-    # pool.map(save_tweets, new_hashtags)
+    user = scraper._get_entity()
+    return user

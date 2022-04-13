@@ -7,9 +7,8 @@ from dotenv import load_dotenv
 from loguru import logger
 
 from .models import (
-    TwitterUserInfo,
-    TwitterTweet,
-    TwitterTweetsStatistics,
+    TwitterUser,
+    TwitterTweet
 )
 from .utils.getters import (
     get_hashtags,
@@ -70,25 +69,26 @@ def get_user_info(screen_name):
     if user.profile_image_url:
         profile_image_url = user.profile_image_url
 
-    user = TwitterUserInfo(
-        id = user.id,
-        screen_name = user.screen_name,
-        name = user.name,
-        profile_image_url = profile_image_url,
-        description = description,
-        created_at = user.created_at,
-        url = url,
-        location = location,
-        followers_count = user.followers_count,
-        friends_count = user.friends_count,
-        favourites_count = user.favourites_count,
-        statuses_count = user.statuses_count,
-        listed_count = user.listed_count,
-        is_protected = user.protected,
-        is_verified = user.verified,
-        updated_at = datetime.now()
-    )
-    user.save()
+    return user._json
+    # user = TwitterUser(
+    #     id = user.id,
+    #     screen_name = user.screen_name,
+    #     name = user.name,
+    #     profile_image_url = profile_image_url,
+    #     description = description,
+    #     created_at = user.created_at,
+    #     url = url,
+    #     location = location,
+    #     followers_count = user.followers_count,
+    #     friends_count = user.friends_count,
+    #     favourites_count = user.favourites_count,
+    #     statuses_count = user.statuses_count,
+    #     listed_count = user.listed_count,
+    #     is_protected = user.protected,
+    #     is_verified = user.verified,
+    #     updated_at = datetime.now()
+    # )
+    # user.save()
 
 
 def save_tweets(tweets):
@@ -117,7 +117,7 @@ def save_tweets(tweets):
             tweet_type = tweet_type_info.get('tweet_type'),
             media = get_media_url(tweet).replace('"', ''),
             original_screen_name = tweet_type_info.get('original_screen_name'),
-            user_id = TwitterUserInfo.objects.get(pk=tweet.user.id)
+            user_id = TwitterUser.objects.get(pk=tweet.user.id)
         )
 
         try:
@@ -159,7 +159,7 @@ def download_all_tweets(screen_name):
 
 def get_tweets_statistics(screen_name):
     pass
-    # user_id = TwitterUserInfo.objects.get(screen_name=screen_name).id
+    # user_id = TwitterUser.objects.get(screen_name=screen_name).id
 
     # created_at_values = TwitterTweet.objects.values_list('created_at', flat=True).filter(user_id=user_id)
     # weekdays_time_activity = get_tweet_time_of_weekdays(created_at_values)

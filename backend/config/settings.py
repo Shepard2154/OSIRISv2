@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework.authtoken',
     'rest_framework',
-    'channels',
+    # 'channels',
 
     'twitter.apps.TwitterConfig',
 ]
@@ -106,16 +106,16 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-ASGI_APPLICATION = "config.asgi.application"
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [('localhost', 6379)],
-            # "symmetric_encryption_keys": [SECRET_KEY],
-        },
-    },
-}
+# ASGI_APPLICATION = "config.asgi.application"
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             "hosts": [('localhost', 6380)],
+#             # "symmetric_encryption_keys": [SECRET_KEY],
+#         },
+#     },
+# }
 
 
 LANGUAGE_CODE = 'en-us'
@@ -141,3 +141,7 @@ os.environ['http_proxy'] = proxy
 os.environ['HTTP_PROXY'] = proxy
 os.environ['https_proxy'] = proxy
 os.environ['HTTPS_PROXY'] = proxy
+
+
+REDIS_HOST = 'localhost'
+REDIS_PORT = 6379

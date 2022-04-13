@@ -1,6 +1,5 @@
 from datetime import datetime
 
-from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
 from multiprocessing import AuthenticationError
@@ -13,30 +12,37 @@ from rest_framework.generics import (
     CreateAPIView, 
 )
 
+from django.conf import settings
+from django.db.utils import IntegrityError
+
+from .v2_services import *
 from .v1_services import *
 from .statistics import calculate_tweets_type
 from .serializers import *
-from .models import TwitterUserInfo, TwitterTweet
-from .cli import download_mytweets
+from .models import TwitterUser, TwitterTweet
+from .cli import download_mytweets, download_username
 
-class TweetCreateAPIView(CreateAPIView):
+import redis
+
+
+logger.add("logs/views.log", format="{time} {message}", level="DEBUG", rotation="500 MB", compression="zip", encoding='utf-8')
+
+
+redis_instance = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=0)
+
+class DownloadPerson(APIView):
     permission_classes = [AllowAny]
-    
-    queryset = TwitterTweet.objects.all()
-    serializer_class = TweetCreateSerializer
-
-
-class DownloadPersonInfo(APIView):
-    permission_classes = [AllowAny]
-    serializer_class = UserRetrieveSerializer
+    serializer_class = UserSerializer
 
     def get(self, request, screen_name):
-        get_user_info(screen_name)
-        desired_user = TwitterUserInfo.objects.get(screen_name=screen_name).__dict__
-        serializer = self.serializer_class(data=desired_user)
-        serializer.is_valid(raise_exception=True)
+        user = get_user_info(screen_name)
+        print(user)
+        # desired_user = UserSerializer.objects.get(screen_name=screen_name).__dict__
+        # serializer = self.serializer_class(data=desired_user)
+        # serializer.is_valid(raise_exception=True)
         
-        return Response(serializer.data)
+        # return Response(serializer.data)
+        return Response(user)
 
 
 class DownloadTweets(APIView):
@@ -47,7 +53,7 @@ class DownloadTweets(APIView):
         tweets = download_all_tweets(screen_name)
         save_tweets(tweets)
 
-        user_id = TwitterUserInfo.objects.get(screen_name=screen_name).id
+        user_id = TwitterUser.objects.get(screen_name=screen_name).id
         tweets = TwitterTweet.objects.all().filter(user_id=user_id)
         serializer = self.serializer_class(instance=tweets, many=True)
         
@@ -76,7 +82,6 @@ class CalculateTweetsStatistics(APIView):
     # authentication_classes = [SessionAuthentication]
     # permission_classes = [IsAuthenticated]
     permission_classes = [AllowAny]
-    serializer_class = TweetListStatistics
 
     def get(self, request, screen_name):
         statistics = get_tweets_statistics(screen_name)
@@ -92,21 +97,56 @@ class CalculateTweetsStatistics(APIView):
 
 
 
-class MessageSendAPIView(APIView):
+# class V2_DownloadHashtags(APIView):
+#     permission_classes = [AllowAny]
+#     serializer = TweetSerializer()
+
+#     def get(self, request, hashtag_value, power):
+#         for tweet in download_mytweets(hashtag_value):
+#             print(tweet['url'])
+#             self.serializer.from_v2_tweet(tweet=tweet)
+#             self.serializer.is_valid(raise_exception=True)
+#             self.serializer.save()
+        
+#         return Response('Ok')
+
+        
+class V2_DownloadHashtags(APIView):
     permission_classes = [AllowAny]
+    serializer_class = TweetSerializer
 
     def get(self, request, hashtag_value, power):
-        if power == 'open':
-            channel_layer = get_channel_layer()
-            for tweet in download_mytweets(hashtag_value):
-                async_to_sync(channel_layer.group_send)(
-                    "general", {"type": "get_tweets", "text": tweet}
-                )
-            return Response({"status": True}, status=status.HTTP_200_OK)
-            
-        elif power == 'close':
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                "general", {"type": "close_scraper", "text": 'done'}
-            )
-            return Response({"status": True}, status=status.HTTP_200_OK)
+        redis_instance.set(hashtag_value, power)
+        for tweet in download_mytweets(hashtag_value):
+            if int(redis_instance.get(hashtag_value)):
+                tweet_to_save = from_v2_tweet(tweet)
+                serializer = self.serializer_class(data=tweet_to_save)
+                serializer.is_valid(raise_exception=True)
+                try:
+                    serializer.save()
+                except IntegrityError:
+                    logger.warning(f"Этот твит ({serializer.data.get('id')}) уже содержится в Базе Данных! Скачивание приостановлено.")
+                    serializer.update(TwitterTweet.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
+            else:
+                return Response(f"Сбор по {'#' + hashtag_value} прекращен!")
+
+
+class V2_DownloadPerson(APIView): 
+    permission_classes = [AllowAny]
+    serializer_class = UserSerializer
+    
+    def get(self, request, username, power):
+        person = download_username(username)
+        person_to_save = from_v2_user(person)
+        print(person_to_save)
+
+        serializer = self.serializer_class(data=person_to_save)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            serializer.save()
+        except IntegrityError:
+            logger.warning(f"Этот пользователь ({serializer.data.get('screen_name')}) уже содержится в Базе Данных!")
+            serializer.update(TwitterTweet.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
+
+        return Response(serializer.data)
