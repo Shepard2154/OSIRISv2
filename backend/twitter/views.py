@@ -30,37 +30,41 @@ logger.add("logs/views.log", format="{time} {message}", level="DEBUG", rotation=
 
 redis_instance = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=0)
 
-class DownloadPerson(APIView):
+class V1_DownloadPerson(APIView):
     permission_classes = [AllowAny]
     serializer_class = UserSerializer
 
     def get(self, request, screen_name):
-        user = get_user_info(screen_name)
-        print(user)
-        # desired_user = UserSerializer.objects.get(screen_name=screen_name).__dict__
-        # serializer = self.serializer_class(data=desired_user)
-        # serializer.is_valid(raise_exception=True)
-        
-        # return Response(serializer.data)
-        return Response(user)
+        person = get_user_info(screen_name)
+        person_to_save = from_v1_user(person)
 
+        serializer = self.serializer_class(data=person_to_save)
+        serializer.is_valid(raise_exception=True)
 
-class DownloadTweets(APIView):
-    permission_classes = [AllowAny]
-    serializer_class = TweetListSerializer
+        try:
+            serializer.save()
+        except IntegrityError:
+            logger.warning(f"Этот пользователь ({serializer.data.get('screen_name')}) уже содержится в Базе Данных!")
+            serializer.update(TwitterUser.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
 
-    def get(self, request, screen_name):
-        tweets = download_all_tweets(screen_name)
-        save_tweets(tweets)
-
-        user_id = TwitterUser.objects.get(screen_name=screen_name).id
-        tweets = TwitterTweet.objects.all().filter(user_id=user_id)
-        serializer = self.serializer_class(instance=tweets, many=True)
-        
         return Response(serializer.data)
 
 
-class V1_DownloadTweet(APIView):
+class V1_DownloadTweetsFromPerson(APIView):
+    permission_classes = [AllowAny]
+    serializer_class = TweetSerializer
+
+    def get(self, request, screen_name):
+        tweets = download_all_tweets(screen_name)
+        tweets_to_save = list(map(from_v1_tweet, tweets))
+        serializer = self.serializer_class(data=tweets_to_save, many=True)
+        serializer.is_valid()
+        serializer.save()
+
+        return Response(serializer.data)
+
+
+class V1_GetTweetById(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, tweet_id):
@@ -68,52 +72,11 @@ class V1_DownloadTweet(APIView):
         
         return Response(tweet)
 
-
-# class V2_DownloadTweetsByHashtag(APIView):
-#     permission_classes = [AllowAny]
-
-#     def get(self, request, hashtag_value):
-#         tweet = download_tweets(hashtag_value)
         
-#         return Response(tweet[0])
-
-
-class CalculateTweetsStatistics(APIView):
-    # authentication_classes = [SessionAuthentication]
-    # permission_classes = [IsAuthenticated]
-    permission_classes = [AllowAny]
-
-    def get(self, request, screen_name):
-        statistics = get_tweets_statistics(screen_name)
-        print(statistics)
-        
-        return Response('Ok')
-        # quotes = models.JSONField(null=True)
-        # retweets = models.JSONField(null=True)
-
-        # serializer = self.serializer_class(data=request.data)
-        # serializer.is_valid(raise_exception=True)
-        # serializer.save()
-
-
-
-# class V2_DownloadHashtags(APIView):
-#     permission_classes = [AllowAny]
-#     serializer = TweetSerializer()
-
-#     def get(self, request, hashtag_value, power):
-#         for tweet in download_mytweets(hashtag_value):
-#             print(tweet['url'])
-#             self.serializer.from_v2_tweet(tweet=tweet)
-#             self.serializer.is_valid(raise_exception=True)
-#             self.serializer.save()
-        
-#         return Response('Ok')
-
-        
-class V2_DownloadHashtags(APIView):
+class V2_DownloadTweetsByHashtags(APIView):
     permission_classes = [AllowAny]
     serializer_class = TweetSerializer
+    downloaded_count = 0
 
     def get(self, request, hashtag_value, power):
         redis_instance.set(hashtag_value, power)
@@ -124,18 +87,20 @@ class V2_DownloadHashtags(APIView):
                 serializer.is_valid(raise_exception=True)
                 try:
                     serializer.save()
+                    self.downloaded_count += 1
                 except IntegrityError:
                     logger.warning(f"Этот твит ({serializer.data.get('id')}) уже содержится в Базе Данных! Скачивание приостановлено.")
                     serializer.update(TwitterTweet.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
             else:
                 return Response(f"Сбор по {'#' + hashtag_value} прекращен!")
+        return Response(f"Сбор по {'#' + hashtag_value} успешно завершен! Собрано {self.downloaded_count} твитов в БД")
 
 
 class V2_DownloadPerson(APIView): 
     permission_classes = [AllowAny]
     serializer_class = UserSerializer
     
-    def get(self, request, username, power):
+    def get(self, request, username):
         person = download_username(username)
         person_to_save = from_v2_user(person)
         print(person_to_save)
@@ -147,6 +112,22 @@ class V2_DownloadPerson(APIView):
             serializer.save()
         except IntegrityError:
             logger.warning(f"Этот пользователь ({serializer.data.get('screen_name')}) уже содержится в Базе Данных!")
-            serializer.update(TwitterTweet.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
+            serializer.update(TwitterUser.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
 
         return Response(serializer.data)
+
+
+class CalculateUserStatistics(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, screen_name):
+        # statistics = get_tweets_statistics(screen_name)
+        # print(statistics)
+        # quotes = models.JSONField(null=True)
+        # retweets = models.JSONField(null=True)
+
+        # serializer = self.serializer_class(data=request.data)
+        # serializer.is_valid(raise_exception=True)
+        # serializer.save()
+        return Response('Does not work :(')
+        

@@ -71,11 +71,11 @@ class TweetSerializer(serializers.Serializer):
 
     reply_count = serializers.IntegerField()
     retweet_count = serializers.IntegerField()
-    quote_count = serializers.IntegerField()
+    quote_count = serializers.IntegerField(allow_null=True)
     likes_count = serializers.IntegerField()
 
     original_screen_name = serializers.CharField(allow_blank=True)
-    retweet_created = serializers.DateTimeField()
+    retweet_created = serializers.DateTimeField(allow_null=True)
     retweet_id = serializers.IntegerField(allow_null=True)
 
     hashtags = serializers.JSONField(allow_null=True)

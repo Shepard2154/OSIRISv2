@@ -589,7 +589,7 @@ class _TwitterAPIScraper(base.Scraper):
 		if (inReplyToTweetId := tweet.get('in_reply_to_status_id_str')):
 			kwargs['inReplyToTweetId'] = int(inReplyToTweetId)
 			inReplyToUserId = int(tweet['in_reply_to_user_id_str'])
-			if inReplyToUserId == kwargs['user'].id:
+			if inReplyToUserId == kwargs['user'].get('id'):
 				kwargs['inReplyToUser'] = kwargs['user']
 			elif tweet['entities'].get('user_mentions'):
 				for u in tweet['entities']['user_mentions']:
