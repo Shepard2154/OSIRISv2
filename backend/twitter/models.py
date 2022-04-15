@@ -1,8 +1,9 @@
 from django.db import models
 from django.utils import timezone  
+from django_prometheus.models import ExportModelOperationsMixin
 
 
-class TwitterUser(models.Model):
+class TwitterUser(ExportModelOperationsMixin('user'), models.Model):
     id = models.BigIntegerField(primary_key=True)
     screen_name = models.CharField(max_length=250, unique=True)
     name = models.CharField(max_length=250)
@@ -11,8 +12,8 @@ class TwitterUser(models.Model):
     description = models.CharField(max_length=2500, default='undefined', blank=True, null=True)
     hashtags = models.JSONField(null=True)
     description_urls = models.JSONField(null=True)
-    birthday = models.DateTimeField()
-    created = models.DateTimeField()
+    birthday = models.DateTimeField(default=timezone.now, blank=True, null=True)
+    created = models.DateTimeField(default=timezone.now, blank=True, null=True)
     web = models.CharField(max_length=300, default='undefined', blank=True, null=True)
     location = models.CharField(max_length=100, default='undefined', blank=True, null=True)
     category = models.CharField(max_length=200, default='undefined', blank=True, null=True)
@@ -29,10 +30,10 @@ class TwitterUser(models.Model):
         db_table = 'twitter_user'
 
     def __str__(self):
-        return self.id
+        return self.screen_name
 
 
-class TwitterTweet(models.Model):
+class TwitterTweet(ExportModelOperationsMixin('tweet'), models.Model):
     id = models.BigIntegerField(primary_key=True)
     created = models.DateTimeField(default=timezone.now, blank=True, null=True)
     text = models.CharField(max_length=2500)
@@ -56,12 +57,13 @@ class TwitterTweet(models.Model):
     coordinates = models.JSONField(null=True)
 
     updated_at = models.DateTimeField(default=timezone.now, blank=True, null=True)
-
+    def __str__(self):
+        return self.author_screen_name
     class Meta:
         db_table = 'twitter_tweet'
 
 
-class TwitterRelations(models.Model):
+class TwitterRelations(ExportModelOperationsMixin('ralation'), models.Model):
     id = models.AutoField(primary_key=True)
     user_id = models.ForeignKey(TwitterUser, db_column='user_id', on_delete=models.CASCADE)
     follower_id = models.PositiveIntegerField()
@@ -86,3 +88,18 @@ class TwitterComments(models.Model):
 
     class Meta:
         db_table = 'twitter_comments'
+
+class TwitterLikes(models.Model):
+    user = models.CharField(max_length=160)
+    #user_id = models.BigIntegerField(null=True)
+    liked_user = models.CharField(max_length=160)
+    liked_user_id = models.IntegerField(null=True)
+    tweet_text = models.CharField(max_length=300)
+    tweet_hashtags = models.JSONField(null=True)
+    tweet_links = models.JSONField(null=True)
+    
+    def __str__(self):
+        return self.user
+    class Meta:
+        verbose_name = 'Лайк'
+        verbose_name_plural = 'Лайки'

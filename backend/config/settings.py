@@ -15,7 +15,7 @@ DJANGO_SETTINGS_MODULE = 'config.settings'
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1']
+ALLOWED_HOSTS = ['*', '127.0.0.1']
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -44,9 +44,11 @@ INSTALLED_APPS = [
     # 'channels',
 
     'twitter.apps.TwitterConfig',
+    'django_prometheus',
 ]
 
 MIDDLEWARE = [
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -55,6 +57,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -81,9 +84,9 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'osiris',
-        'USER': 'osiris_admin',
-        'PASSWORD': 'osirisisfuture',
+        'NAME': 'osiris2',
+        'USER': 'admin',
+        'PASSWORD': 'osiris472',
         'HOST': 'localhost',
         'POST': '',
     }
@@ -118,7 +121,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # }
 
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru-ru'
 
 TIME_ZONE = 'UTC'
 

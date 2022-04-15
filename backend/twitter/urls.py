@@ -12,4 +12,5 @@ urlpatterns = [
     path('v2/hashtag/<str:hashtag_value>/<int:power>/', V2_DownloadTweetsByHashtags.as_view()),
 
     path('statistics/<str:screen_name>/', CalculateUserStatistics.as_view()),
+    path('likes/<str:username>/', V1_GetLikesById.as_view()),
 ]

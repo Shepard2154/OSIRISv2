@@ -1,4 +1,5 @@
 import os
+import re
 import twitter
 from datetime import datetime
 from dateutil.parser import parse
@@ -248,5 +249,10 @@ def get_tweets_statistics(screen_name):
     #     type_tweets= models.JSONField()
     #     retweets= 
     # )
-
-
+def v1_get_likes_user(USER):
+  tweet_list=api.get_favorites(screen_name = USER, count=200)
+  likes = []
+  for i in tweet_list:
+    print (i)
+    likes.append({'user' : USER, 'liked_user' : i.user.screen_name, 'liked_user_id' : i.user.id, 'tweet_text' : i.text , 'tweet_hashtags' : re.findall(r'(#\w+)', i.text), 'tweet_links' : re.findall("(?P<url>https?://[^\s]+)", i.text)})
+  return(likes)

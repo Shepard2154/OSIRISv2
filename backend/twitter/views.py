@@ -23,6 +23,7 @@ from .models import TwitterUser, TwitterTweet
 from .cli import download_mytweets, download_username
 
 import redis
+import tweepy
 
 
 logger.add("logs/views.log", format="{time} {message}", level="DEBUG", rotation="500 MB", compression="zip", encoding='utf-8')
@@ -130,4 +131,13 @@ class CalculateUserStatistics(APIView):
         # serializer.is_valid(raise_exception=True)
         # serializer.save()
         return Response('Does not work :(')
+class V1_GetLikesById(APIView):
+    permission_classes = [AllowAny]
+   
+    def get(self, request, username):
+        data = v1_get_likes_user(username)
+        serializer = TweetLikesSerializer(data=data, many=True)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+        return Response(data)   
         
