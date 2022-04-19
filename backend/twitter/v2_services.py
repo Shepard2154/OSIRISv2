@@ -1,4 +1,16 @@
+import json
 from datetime import datetime
+
+from django.conf import settings
+from django.db.utils import IntegrityError
+from loguru import logger
+
+from .models import TwitterTweet
+from .serializers import TweetSerializer
+from . import twitter
+
+
+logger.add("logs/v2_services.log", format="{time} {message}", level="DEBUG", rotation="500 MB", compression="zip", encoding='utf-8')
 
 
 def from_v2_tweet(tweet):
@@ -80,3 +92,35 @@ def from_v2_user(user):
     valid_user['updated_at'] = datetime.now()
 
     return valid_user
+
+
+def v2_download_tweets_by_hashtag(hashtag_item):
+    scraper = twitter.TwitterHashtagScraper(hashtag_item)
+    for tweet in scraper.get_items():
+        if int(settings.REDIS_INSTANCE.get(hashtag_item)):
+            valid_tweet = from_v2_tweet(json.loads(tweet.json()))
+            serializer = TweetSerializer(data=valid_tweet)
+            serializer.is_valid(raise_exception=True)
+            try:
+                serializer.save()
+                logger.info(f"Этот твит ({serializer.data.get('id')}) только что был добавлен в Базу Данных!")
+            except IntegrityError:
+                logger.warning(f"Этот твит ({serializer.data.get('id')}) уже содержится в Базе Данных!")
+                serializer.update(TwitterTweet.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
+        else:
+            break
+
+
+def download_tweets_by_hashtag(hashtag_item):
+    scraper = twitter.TwitterHashtagScraper(hashtag_item)
+
+    for tweet in scraper.get_items():
+        yield json.loads(tweet.json())
+        if not int(settings.REDIS_INSTANCE.get(hashtag_item)):
+            break
+
+def download_username(username):
+    scraper = twitter.TwitterUserScraper(username)
+
+    user = scraper._get_entity()
+    return user

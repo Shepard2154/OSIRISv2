@@ -1,9 +1,6 @@
 from rest_framework import serializers
 
-from .models import (
-    TwitterUser, 
-    TwitterTweet,
-)
+from .models import TwitterTweet, TwitterUser
 
 
 class TweetListSerializer(serializers.ModelSerializer):

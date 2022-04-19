@@ -1,8 +1,8 @@
 import os
-
-from dotenv import load_dotenv
 from pathlib import Path
 
+import redis
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -38,10 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'django_celery_beat',
     'corsheaders',
     'rest_framework.authtoken',
     'rest_framework',
-    # 'channels',
 
     'twitter.apps.TwitterConfig',
 ]
@@ -120,7 +120,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
 
@@ -136,12 +136,19 @@ MEDIA_URL = '/media/'
 
 CORS_ORIGIN_ALLOW_ALL = True 
 
-proxy = proxy = os.getenv('PROXY_HTTP_2')
-os.environ['http_proxy'] = proxy 
-os.environ['HTTP_PROXY'] = proxy
-os.environ['https_proxy'] = proxy
-os.environ['HTTPS_PROXY'] = proxy
-
+PROXY = os.getenv('PROXY_HTTP_2')
+os.environ['http_proxy'] = PROXY 
+os.environ['HTTP_PROXY'] = PROXY
+os.environ['https_proxy'] = PROXY
+os.environ['HTTPS_PROXY'] = PROXY
 
 REDIS_HOST = 'localhost'
 REDIS_PORT = 6379
+REDIS_INSTANCE = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=0)
+
+
+CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
+CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"
+CELERY_TIMEZONE = "Europe/Moscow"
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 1 * 60

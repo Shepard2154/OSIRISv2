@@ -1,5 +1,5 @@
 from django.db import models
-from django.utils import timezone  
+from django.utils import timezone
 
 
 class TwitterUser(models.Model):
@@ -72,7 +72,6 @@ class TwitterRelations(models.Model):
         unique_together = ['user_id', 'follower_id']
 
 
-
 class TwitterComments(models.Model):
     author_id = models.BigIntegerField(primary_key=True)
     author_screen_name = models.CharField(max_length=50)
@@ -86,3 +85,11 @@ class TwitterComments(models.Model):
 
     class Meta:
         db_table = 'twitter_comments'
+
+
+class TwitterHashtags(models.Model):
+    id =  models.AutoField(primary_key=True)
+    hashtag_value = models.CharField(max_length=100)
+
+    class Meta:
+        db_table = 'twitter_hashtags'

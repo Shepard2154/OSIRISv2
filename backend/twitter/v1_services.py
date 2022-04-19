@@ -1,38 +1,23 @@
 import os
-import twitter
 from datetime import datetime
-from dateutil.parser import parse
 
 import tweepy
+from dateutil.parser import parse
 from dotenv import load_dotenv
 from loguru import logger
 
-from .models import (
-    TwitterUser,
-    TwitterTweet
-)
-from .utils.getters import (
-    get_hashtags,
-    get_urls,
-    get_user_mentions,
-    get_media_url,
-)
-from .statistics import (
-    calculate_tweets_type,
-    get_domain_count,
-    get_tweet_time_of_weekdays,
-    get_tweet_weekday,
-    get_tweet_dates,
-    get_tweet_retweet_screen_name,
-    get_tweet_quote_screen_name,
-    get_source_count,
-    get_lang_count,
-    calculate_user_mentions,
-    calculate_hashtags,
-    calculate_network_activity,
-    calculate_day_tweets,
-)
+import twitter
 
+from .models import TwitterTweet, TwitterUser
+from .statistics import (calculate_day_tweets, calculate_hashtags,
+                         calculate_network_activity, calculate_tweets_type,
+                         calculate_user_mentions, get_domain_count,
+                         get_lang_count, get_source_count, get_tweet_dates,
+                         get_tweet_quote_screen_name,
+                         get_tweet_retweet_screen_name,
+                         get_tweet_time_of_weekdays, get_tweet_weekday)
+from .utils.getters import (get_hashtags, get_media_url, get_urls,
+                            get_user_mentions)
 
 logger.add("logs/twitterAPIv1_services.log", format="{time} {message}", level="DEBUG", rotation="500 MB", compression="zip", encoding='utf-8')
 

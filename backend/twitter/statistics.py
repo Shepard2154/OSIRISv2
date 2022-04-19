@@ -1,20 +1,12 @@
 import calendar
 from collections import Counter
-from datetime import datetime 
+from datetime import datetime
 
 from .models import TwitterTweet
-from .utils.getters import (
-    get_domain,
-)
-from .utils.formatters import (
-    get_tweet_weekday,
-    get_tweet_time_of_weekdays,
-    get_tweet_dates,
-)
-
-from .serializers import (
-    TweetListSerializer,
-) 
+from .serializers import TweetListSerializer
+from .utils.formatters import (get_tweet_dates, get_tweet_time_of_weekdays,
+                               get_tweet_weekday)
+from .utils.getters import get_domain
 
 
 def get_domain_count(urls):
