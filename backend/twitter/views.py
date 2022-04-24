@@ -189,6 +189,16 @@ class Monitoring(APIView):
                 return Response(str(task))
 
 
+class V1_GetLikesById(APIView):
+    permission_classes = [AllowAny]
+   
+    def get(self, request, username):
+        data = v1_get_likes_user(username)
+        serializer = TweetLikesSerializer(data=data, many=True)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+        return Response(data)   
+
 # class CalculateUserStatistics(APIView):
 #     permission_classes = [AllowAny]
 

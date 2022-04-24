@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import datetime
 from dateutil.parser import parse
 from pathlib import Path
@@ -262,6 +263,13 @@ def download_all_tweets(screen_name):
             oldest_id = current_tweets[-1].id
         else:
             return tweets
+
+def v1_get_likes_user(screen_name):
+  tweet_list=settings.TWITTER_APIV1.get_favorites(screen_name=screen_name, count=200)
+  likes = []
+  for i in tweet_list:
+    likes.append({'user': screen_name, 'liked_user': i.user.screen_name, 'liked_user_id': i.user.id, 'tweet_text': i.text , 'tweet_hashtags': re.findall(r'(#\w+)', i.text), 'tweet_links': re.findall("(?P<url>https?://[^\s]+)", i.text)})
+  return(likes)
 
 
 # def get_tweets_statistics(screen_name):

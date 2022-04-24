@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import TwitterTweet, TwitterUser
+from .models import TwitterTweet, TwitterUser, TwitterLikes
 
 
 class TweetListSerializer(serializers.ModelSerializer):
@@ -108,4 +108,25 @@ class TweetSerializer(serializers.Serializer):
         instance.coordinates = validated_data.get('coordinates', instance.coordinates)
         instance.updated_at = validated_data.get('updated_at', instance.updated_at)        
         instance.save()
+        return instance
+
+
+class TweetLikesSerializer(serializers.Serializer):
+    user = serializers.CharField()
+    liked_user = serializers.CharField()
+    liked_user_id = serializers.IntegerField(allow_null=True)
+    tweet_text = serializers.CharField()
+    tweet_hashtags = serializers.JSONField(allow_null=True)
+    tweet_links = serializers.JSONField(allow_null=True)
+    
+    def create(self, validated_data):
+        return TwitterLikes.objects.create(**validated_data)
+    
+    def update(self, instance, validated_data):
+        instance.user = validated_data.get('user', instance.user)
+        instance.liked_user = validated_data.get('liked_user', instance.liked_user)
+        instance.liked_user_id = validated_data.get('liked_user_id', instance.liked_user_id)
+        instance.tweet_text = validated_data.get('tweet_text', instance.tweet_text)
+        instance.tweet_hashtags = validated_data.get('tweet_hashtags', instance.tweet_hashtags)
+        instance.tweet_links = validated_data.get('tweet_links', instance.tweet_links)       
         return instance
