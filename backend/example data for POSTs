@@ -8,3 +8,11 @@
     "all_flag": true,
     "mode_flag": 1
 }
+
+#/twitter/monitoring/hashtags/
+{
+    "values": ["ole", "xsd"],
+    "all_flag": false,
+    "mode_flag": 1,
+    "interval": 10 
+}

@@ -1,4 +1,3 @@
-from asyncio import tasks
 import json
 
 import django
@@ -11,22 +10,19 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .celery import *
-from .cli import download_tweets_by_hashtag, download_username
 from .models import TwitterTweet, TwitterUser
 from .serializers import *
-from .tasks import example, scrape_hashtags
 from .services import *
-from .v1_services import *
-from .v2_services import *
+from .tasks import example, scrape_hashtags
+
 
 logger.add("logs/views.log", format="{time} {message}", level="DEBUG", rotation="500 MB", compression="zip", encoding='utf-8')
 
-
-class Webdriver_DownloadTweetsByHashtags(APIView):
-    permission_classes = [AllowAny]
+# class Webdriver_DownloadTweetsByHashtags(APIView):
+#     permission_classes = [AllowAny]
     
-    def get(self, request, hashtag_value):
-        return Response('Does not work :(')
+#     def get(self, request, hashtag_value):
+#         return Response('Does not work :(')
 
 
 class V1_DownloadPerson(APIView):
@@ -133,21 +129,6 @@ class V2_DownloadPerson(APIView):
         return Response(serializer.data)
 
 
-class CalculateUserStatistics(APIView):
-    permission_classes = [AllowAny]
-
-    def get(self, request, screen_name):
-        # statistics = get_tweets_statistics(screen_name)
-        # print(statistics)
-        # quotes = models.JSONField(null=True)
-        # retweets = models.JSONField(null=True)
-
-        # serializer = self.serializer_class(data=request.data)
-        # serializer.is_valid(raise_exception=True)
-        # serializer.save()
-        return Response('Does not work :(')
-
-
 class GetHashtagsFromFile(APIView):
     permission_classes = [AllowAny]
 
@@ -155,28 +136,69 @@ class GetHashtagsFromFile(APIView):
         hashtags = get_hashtags_from_file()
         return Response(hashtags)
 
+
 class Monitoring(APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request, interval, power):
-        if power:
+    def post(self, request):
+        hashtags_values = request.data.get('values')
+        mode_flag = int(request.data.get('mode_flag'))
+        all_flag = request.data.get('all_flag')
+        interval = request.data.get('interval')
+
+        if mode_flag == None:
+            return Response('Укажите в POST-запросе поле mode_flag: 1 / 0')
+        if interval == None:
+            return Response('Укажите в POST-запросе поле interval (в часах): 1..n')
+        if hashtags_values or all_flag:
             try:
+                # Для удобного тестирования оставил интервал в секундах
                 schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.SECONDS)
             except django_celery_beat.models.IntervalSchedule.MultipleObjectsReturned:
                 schedule = IntervalSchedule.objects.filter(every=interval, period=IntervalSchedule.SECONDS).delete()
                 schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.SECONDS)
 
-            try:
-                task = PeriodicTask.objects.create(interval=schedule, name='example', task='twitter.tasks.example', args=json.dumps([66]))
-            except django.core.exceptions.ValidationError:
-                task = PeriodicTask.objects.filter(name='example', task='twitter.tasks.example').delete()
-                task = PeriodicTask.objects.create(interval=schedule, name='example', task='twitter.tasks.example', args=json.dumps([66]))
+            if mode_flag:
+                try:
+                    task = PeriodicTask.objects.create(
+                        interval=schedule, 
+                        name='scrape_hashtags', 
+                        task='twitter.tasks.scrape_hashtags', 
+                        args=json.dumps([hashtags_values, all_flag, mode_flag]))
 
-            task.save()
-            PeriodicTask.objects.update(last_run_at=None)
-            PeriodicTasks.changed(task)
+                except django.core.exceptions.ValidationError:
+                    task = PeriodicTask.objects.filter(
+                        name='scrape_hashtags', 
+                        task='twitter.tasks.scrape_hashtags').delete()
+                        
+                    task = PeriodicTask.objects.create(
+                        interval=schedule, 
+                        name='scrape_hashtags', 
+                        task='twitter.tasks.scrape_hashtags', 
+                        args=json.dumps([hashtags_values, all_flag, mode_flag]))
 
-            return Response(str(task))
-        else:
-            task = PeriodicTask.objects.filter(name='example', task='twitter.tasks.example').delete()
-            return Response(str(task))
+                task.save()
+                PeriodicTask.objects.update(last_run_at=None)
+                PeriodicTasks.changed(task)
+
+                return Response(str(task))
+            else:
+                task = PeriodicTask.objects.filter(name='scrape_hashtags', task='twitter.tasks.scrape_hashtags').delete()
+                scrape_hashtags.delay(hashtags_values, all_flag, mode_flag)
+
+                return Response(str(task))
+
+
+# class CalculateUserStatistics(APIView):
+#     permission_classes = [AllowAny]
+
+#     def get(self, request, screen_name):
+#         # statistics = get_tweets_statistics(screen_name)
+#         # print(statistics)
+#         # quotes = models.JSONField(null=True)
+#         # retweets = models.JSONField(null=True)
+
+#         # serializer = self.serializer_class(data=request.data)
+#         # serializer.is_valid(raise_exception=True)
+#         # serializer.save()
+#         return Response('Does not work :(')

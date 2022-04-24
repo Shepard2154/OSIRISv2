@@ -5,7 +5,7 @@ from loguru import logger
 import multiprocessing as mp
 
 from .models import TwitterHashtags
-from .v2_services import v2_download_tweets_by_hashtag
+from .services import *
 
 logger.add("logs/twitter_tasks.log", format="{time} {message}", level="DEBUG", rotation="500 MB", compression="zip", encoding='utf-8')
 

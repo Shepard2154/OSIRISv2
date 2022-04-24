@@ -2,12 +2,13 @@ import os
 from pathlib import Path
 
 import redis
+import tweepy
 from dotenv import load_dotenv
+
 
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
@@ -43,6 +44,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'rest_framework',
 
+    'common.apps.CommonConfig',
     'twitter.apps.TwitterConfig',
 ]
 
@@ -106,18 +108,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# ASGI_APPLICATION = "config.asgi.application"
-# CHANNEL_LAYERS = {
-#     'default': {
-#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
-#         'CONFIG': {
-#             "hosts": [('localhost', 6380)],
-#             # "symmetric_encryption_keys": [SECRET_KEY],
-#         },
-#     },
-# }
-
-
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'Europe/Moscow'
@@ -142,10 +132,13 @@ os.environ['HTTP_PROXY'] = PROXY
 os.environ['https_proxy'] = PROXY
 os.environ['HTTPS_PROXY'] = PROXY
 
+TWITTER_AUTH = tweepy.OAuthHandler(os.getenv('CONSUMER_KEY'), os.getenv('CONSUMER_SECRET'))
+TWITTER_AUTH.set_access_token(os.getenv('ACCESS_KEY'), os.getenv('ACCESS_SECRET'))
+TWITTER_APIV1 = tweepy.API(TWITTER_AUTH, wait_on_rate_limit=True)
+
 REDIS_HOST = 'localhost'
 REDIS_PORT = 6379
 REDIS_INSTANCE = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=0)
-
 
 CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
 CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"
