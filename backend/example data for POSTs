@@ -1,4 +1,4 @@
-# /twitter/v2/hashtags/
+#/twitter/v2/hashtags/
 {
     "values": ["ole", "xsd"],
     "mode_flag": 1
@@ -13,6 +13,20 @@
 {
     "values": ["ole", "xsd"],
     "all_flag": false,
+    "mode_flag": 1,
+    "interval": 10 
+}
+
+#/twitter/monitoring/persons/
+{
+    "values": ["confusedlexa", "JoeBiden"],
+    "all_flag": false,
+    "mode_flag": 1,
+    "interval": 10 
+}
+
+{
+    "all_flag": true,
     "mode_flag": 1,
     "interval": 10 
 }

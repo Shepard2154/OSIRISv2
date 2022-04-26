@@ -97,6 +97,14 @@ class TwitterHashtags(models.Model):
         db_table = 'twitter_hashtags'
 
 
+class TwitterPersons(models.Model):
+    id =  models.AutoField(primary_key=True)
+    person_screen_name = models.CharField(max_length=100)
+
+    class Meta:
+        db_table = 'twitter_persons'
+
+
 class TwitterLikes(models.Model):
     id = models.AutoField(primary_key=True)
     user = models.CharField(max_length=160)

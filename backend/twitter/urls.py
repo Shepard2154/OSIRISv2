@@ -19,5 +19,6 @@ urlpatterns = [
     
     path('hashtags/setfromfile/', GetHashtagsFromFile.as_view()),
 
-    path('monitoring/hashtags/', Monitoring.as_view()),
+    path('monitoring/hashtags/', MonitoringHashtags.as_view()),
+    path('monitoring/persons/', MonitoringPersons.as_view()),
 ]

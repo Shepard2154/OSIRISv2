@@ -10,8 +10,8 @@ from django.conf import settings
 from django.db.utils import IntegrityError
 from loguru import logger
 
-from .models import TwitterTweet, TwitterHashtags
-from .serializers import TweetSerializer
+from .models import TwitterPersons, TwitterTweet, TwitterHashtags, TwitterUser
+from .serializers import TweetSerializer, UserSerializer
 from .hashtags import twitter
 
 
@@ -143,9 +143,25 @@ def download_tweets_by_hashtag(hashtag_item):
 
 def download_username(username):
     scraper = twitter.TwitterUserScraper(username)
-
     user = scraper._get_entity()
     return user
+
+
+def v2_download_username(username):
+    if int(settings.REDIS_INSTANCE.get(username)):
+        scraper = twitter.TwitterUserScraper(username)
+        user = scraper._get_entity()
+
+        valid_user = from_v2_user(user)
+        serializer = UserSerializer(data=valid_user)
+        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.save()
+            logger.info(f"Этот пользователь ({serializer.data.get('screen_name')}) только что был добавлен в Базу Данных!")
+        except IntegrityError:
+            logger.warning(f"Этот пользователь ({serializer.data.get('screen_name')}) уже содержится в Базе Данных!")
+            serializer.update(TwitterUser.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
+        return user
 
 
 def v1_get_tweet_by_id(id):

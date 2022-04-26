@@ -13,7 +13,7 @@ from .celery import *
 from .models import TwitterTweet, TwitterUser
 from .serializers import *
 from .services import *
-from .tasks import example, scrape_hashtags
+from .tasks import example, scrape_hashtags, scrape_persons
 
 
 logger.add("logs/views.log", format="{time} {message}", level="DEBUG", rotation="500 MB", compression="zip", encoding='utf-8')
@@ -115,7 +115,6 @@ class V2_DownloadPerson(APIView):
     def get(self, request, username):
         person = download_username(username)
         person_to_save = from_v2_user(person)
-        print(person_to_save)
 
         serializer = self.serializer_class(data=person_to_save)
         serializer.is_valid(raise_exception=True)
@@ -137,7 +136,7 @@ class GetHashtagsFromFile(APIView):
         return Response(hashtags)
 
 
-class Monitoring(APIView):
+class MonitoringHashtags(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -187,6 +186,58 @@ class Monitoring(APIView):
                 scrape_hashtags.delay(hashtags_values, all_flag, mode_flag)
 
                 return Response(str(task))
+
+
+class MonitoringPersons(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        person_screen_names = request.data.get('values')
+        mode_flag = int(request.data.get('mode_flag'))
+        all_flag = request.data.get('all_flag')
+        interval = request.data.get('interval')
+
+        if mode_flag == None:
+            return Response('Укажите в POST-запросе поле mode_flag: 1 / 0')
+        if interval == None:
+            return Response('Укажите в POST-запросе поле interval (в часах): 1..n')
+        if person_screen_names or all_flag:
+            try:
+                # Для удобного тестирования оставил интервал в секундах
+                schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.SECONDS)
+            except django_celery_beat.models.IntervalSchedule.MultipleObjectsReturned:
+                schedule = IntervalSchedule.objects.filter(every=interval, period=IntervalSchedule.SECONDS).delete()
+                schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.SECONDS)
+
+            if mode_flag:
+                try:
+                    task = PeriodicTask.objects.create(
+                        interval=schedule, 
+                        name='scrape_persons', 
+                        task='twitter.tasks.scrape_persons', 
+                        args=json.dumps([person_screen_names, all_flag, mode_flag]))
+
+                except django.core.exceptions.ValidationError:
+                    task = PeriodicTask.objects.filter(
+                        name='scrape_persons', 
+                        task='twitter.tasks.scrape_persons').delete()
+                        
+                    task = PeriodicTask.objects.create(
+                        interval=schedule, 
+                        name='scrape_persons', 
+                        task='twitter.tasks.scrape_persons', 
+                        args=json.dumps([person_screen_names, all_flag, mode_flag]))
+
+                task.save()
+                PeriodicTask.objects.update(last_run_at=None)
+                PeriodicTasks.changed(task)
+
+                return Response(str(task))
+            else:
+                task = PeriodicTask.objects.filter(name='scrape_persons', task='twitter.tasks.scrape_persons').delete()
+                scrape_persons.delay(person_screen_names, all_flag, mode_flag)
+
+                return Response(str(task)) 
 
 
 class V1_GetLikesById(APIView):
