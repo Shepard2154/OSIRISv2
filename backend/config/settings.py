@@ -41,6 +41,7 @@ INSTALLED_APPS = [
 
     'django_celery_beat',
     'django_prometheus',
+    'drf_yasg',
     'corsheaders',
     'rest_framework.authtoken',
     'rest_framework',
