@@ -1,5 +1,0 @@
-# Для запуска celery worker 
-celery -A twitter worker -l info -P threads
-
-# Для запуска celery beat, чтобы работали периодические задачи (должна работать вместе с командой №1 в разных терминалах)
-celery -A twitter beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
