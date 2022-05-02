@@ -1,11 +1,17 @@
 from rest_framework import serializers
 
-from .models import TwitterTweet, TwitterUser, TwitterLikes
+from .models import TwitterComments, TwitterTweet, TwitterUser, TwitterLikes
 
 
 class TweetListSerializer(serializers.ModelSerializer):
     class Meta:
         model = TwitterTweet
+        fields = '__all__'
+
+
+class CommentsListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TwitterComments
         fields = '__all__'
 
 
@@ -129,4 +135,41 @@ class TweetLikesSerializer(serializers.Serializer):
         instance.tweet_text = validated_data.get('tweet_text', instance.tweet_text)
         instance.tweet_hashtags = validated_data.get('tweet_hashtags', instance.tweet_hashtags)
         instance.tweet_links = validated_data.get('tweet_links', instance.tweet_links)       
+        return instance
+
+
+class TwitterCommentsSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    author_id = serializers.IntegerField()
+    author_screen_name = serializers.CharField()
+    created = serializers.DateTimeField()
+    text = serializers.CharField()
+    hashtags = serializers.JSONField(allow_null=True)
+    urls = serializers.JSONField(allow_null=True)
+    reply_count = serializers.IntegerField()
+    retweet_count = serializers.IntegerField()
+    quote_count = serializers.IntegerField(allow_null=True)
+    likes_count = serializers.IntegerField()
+    updated_at = serializers.DateTimeField()
+
+
+    def create(self, validated_data):
+        return TwitterComments.objects.create(**validated_data)
+    
+    
+    def update(self, instance, validated_data):
+        instance.id = validated_data.get('id', instance.id)
+        instance.author_id = validated_data.get('author_id', instance.author_id)
+        instance.author_screen_name = validated_data.get('author_screen_name', instance.author_screen_name)
+        instance.created = validated_data.get('created', instance.created)
+        instance.text = validated_data.get('text', instance.text)
+        instance.hashtags = validated_data.get('hashtags', instance.hashtags)
+        instance.urls = validated_data.get('urls', instance.urls)
+        instance.likes_count = validated_data.get('likes_count', instance.likes_count)
+        instance.retweet_count = validated_data.get('retweet_count', instance.retweet_count)
+        instance.quote_count = validated_data.get('quote_count', instance.quote_count)
+        instance.reply_count = validated_data.get('reply_count', instance.reply_count)
+        instance.updated_at = validated_data.get('updated_at', instance.updated_at)        
+        instance.save()
+
         return instance

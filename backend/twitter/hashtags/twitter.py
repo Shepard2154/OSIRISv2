@@ -595,9 +595,11 @@ class _TwitterAPIScraper(base.Scraper):
 			elif tweet['entities'].get('user_mentions'):
 				for u in tweet['entities']['user_mentions']:
 					if u['id_str'] == tweet['in_reply_to_user_id_str']:
-						kwargs['inReplyToUser'] = User(username = u['screen_name'], id = u['id'] if 'id' in u else int(u['id_str']), displayname = u['name'])
+						# kwargs['inReplyToUser'] = User(username = u['screen_name'], id = u['id'] if 'id' in u else int(u['id_str']), displayname = u['name'])
+						kwargs['inReplyToUser'] = u
 			if 'inReplyToUser' not in kwargs:
-				kwargs['inReplyToUser'] = User(username = tweet['in_reply_to_screen_name'], id = inReplyToUserId)
+				# kwargs['inReplyToUser'] = User(username = tweet['in_reply_to_screen_name'], id = inReplyToUserId)
+				kwargs['inReplyToUser'] = tweet['in_reply_to_screen_name']
 		if tweet['entities'].get('user_mentions'):
 			kwargs['mentionedUsers'] = [User(username = u['screen_name'], id = u['id'] if 'id' in u else int(u['id_str']), displayname = u['name']) for u in tweet['entities']['user_mentions']]
 
@@ -619,7 +621,8 @@ class _TwitterAPIScraper(base.Scraper):
 			kwargs['hashtags'] = [o['text'] for o in tweet['entities']['hashtags']]
 		if tweet['entities'].get('symbols'):
 			kwargs['cashtags'] = [o['text'] for o in tweet['entities']['symbols']]
-		return Tweet(**kwargs)
+		# return Tweet(**kwargs)
+		return kwargs
 
 	def _render_text_with_urls(self, text, urls):
 		if not urls:

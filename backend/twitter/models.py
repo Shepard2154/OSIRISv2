@@ -57,6 +57,7 @@ class TwitterTweet(ExportModelOperationsMixin('tweet'), models.Model):
     coordinates = models.JSONField(null=True)
 
     updated_at = models.DateTimeField(default=timezone.now, blank=True, null=True)
+
     def __str__(self):
         return self.author_screen_name
     class Meta:
@@ -72,21 +73,6 @@ class TwitterRelations(ExportModelOperationsMixin('ralation'), models.Model):
     class Meta:
         db_table = 'twitter_relations'
         unique_together = ['user_id', 'follower_id']
-
-
-class TwitterComments(models.Model):
-    author_id = models.BigIntegerField(primary_key=True)
-    author_screen_name = models.CharField(max_length=50)
-    created_at = models.DateTimeField()
-    text = models.CharField(max_length=2500)
-    hashtags = models.JSONField(null=True)
-    urls = models.JSONField(null=True)
-    likes_count = models.IntegerField(null=True)
-    retweets_count = models.IntegerField(null=True)
-    comments_to_comments = models.IntegerField(null=True)
-
-    class Meta:
-        db_table = 'twitter_comments'
 
 
 class TwitterHashtags(models.Model):
@@ -105,7 +91,7 @@ class TwitterPersons(models.Model):
         db_table = 'twitter_persons'
 
 
-class TwitterLikes(models.Model):
+class TwitterLikes(ExportModelOperationsMixin('likes'), models.Model):
     id = models.AutoField(primary_key=True)
     user = models.CharField(max_length=160)
     liked_user = models.CharField(max_length=160)
@@ -116,9 +102,32 @@ class TwitterLikes(models.Model):
     
     def __str__(self):
         return self.user
+
     class Meta:
+        db_table = 'twitter_likes'
         verbose_name = 'Лайк'
         verbose_name_plural = 'Лайки'
 
 
+class TwitterComments(ExportModelOperationsMixin('comments'), models.Model):
+    id = models.BigIntegerField(primary_key=True)
+    author_id = models.BigIntegerField(default=0)
+    author_screen_name = models.CharField(max_length=50)
+    created = models.DateTimeField()
+    text = models.CharField(max_length=2500)
+    hashtags = models.JSONField(null=True)
+    urls = models.JSONField(null=True)
+    likes_count = models.BigIntegerField(null=True)
+    retweet_count = models.BigIntegerField(null=True)
+    quote_count = models.BigIntegerField(null=True)
+    reply_count = models.BigIntegerField(null=True)
+    updated_at = models.DateTimeField(default=timezone.now, blank=True, null=True)
+
+    def __str__(self):
+        return self.author_screen_name
+
+    class Meta:
+        db_table = 'twitter_comments'
+        verbose_name = 'Комментраий'
+        verbose_name_plural = 'Комментарии'
 

@@ -1,3 +1,4 @@
+import datetime as DT
 import json
 import re
 from datetime import datetime
@@ -10,8 +11,8 @@ from django.conf import settings
 from django.db.utils import IntegrityError
 from loguru import logger
 
-from .models import TwitterPersons, TwitterTweet, TwitterHashtags, TwitterUser
-from .serializers import TweetSerializer, UserSerializer
+from .models import TwitterComments, TwitterPersons, TwitterTweet, TwitterHashtags, TwitterUser
+from .serializers import TweetSerializer, UserSerializer, TwitterCommentsSerializer
 from .hashtags import twitter
 
 
@@ -280,59 +281,29 @@ def download_all_tweets(screen_name):
         else:
             return tweets
 
+
 def v1_get_likes_user(screen_name):
   tweet_list=settings.TWITTER_APIV1.get_favorites(screen_name=screen_name, count=200)
   likes = []
   for i in tweet_list:
     likes.append({'user': screen_name, 'liked_user': i.user.screen_name, 'liked_user_id': i.user.id, 'tweet_text': i.text , 'tweet_hashtags': re.findall(r'(#\w+)', i.text), 'tweet_links': re.findall("(?P<url>https?://[^\s]+)", i.text)})
-  return(likes)
+  return likes
 
 
-# def get_tweets_statistics(screen_name):
-#     pass
-    # user_id = TwitterUser.objects.get(screen_name=screen_name).id
+def v2_get_comments(screen_name, max_count=200):
+    comments_count = 0
+    for comment in twitter.TwitterSearchScraper(f'from:{screen_name} filter:replies').get_items():
+        valid_tweet = from_v2_tweet(comment)
+        serializer = TwitterCommentsSerializer(data=valid_tweet)
+        serializer.is_valid(raise_exception=True)
 
-    # created_at_values = TwitterTweet.objects.values_list('created_at', flat=True).filter(user_id=user_id)
-    # weekdays_time_activity = get_tweet_time_of_weekdays(created_at_values)
-    # week_activity = get_tweet_weekday(created_at_values)
-    # date_activity = get_tweet_dates(created_at_values)
+        try:
+            serializer.save()
+            logger.info(f"Этот комментарий ({serializer.data.get('id')}) только что был добавлен в Базу Данных!")
+        except IntegrityError:
+            logger.warning(f"Этот комментарий ({serializer.data.get('id')}) уже содержится в Базе Данных!")
+            serializer.update(TwitterComments.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
 
-    # langs_values = TwitterTweet.objects.values_list('lang', flat=True).filter(user_id=user_id)
-    # langs = get_lang_count(langs_values)
-
-    # devices_values = TwitterTweet.objects.values_list('source', flat=True).filter(user_id=user_id)
-    # devices = get_source_count(devices_values)
-
-    # urls_mentions_values = TwitterTweet.objects.values_list('urls', flat=True).filter(user_id=user_id)
-    # url_mentions = get_domain_count(urls_mentions_values)
-
-    # user_mentions_values = TwitterTweet.objects.values_list('user_mentions', flat=True).filter(user_id=user_id)
-    # user_mentions = calculate_user_mentions(user_mentions_values)
-
-    # hashtags_values = TwitterTweet.objects.values_list('hashtags', flat=True).filter(user_id=user_id)
-    # hashtags = calculate_hashtags(hashtags_values)
-
-    # type_tweets_values = TwitterTweet.objects.values_list('tweet_type', flat=True).filter(user_id=user_id)
-    # type_tweets = calculate_tweets_type(type_tweets_values)
-
-    # quotes_values = type_tweets_values.filter(tweet_type='Цитата')
-    # quotes = quotes_values.values_list('original_screen_name')
-    # quotes_count = get_tweet_quote_screen_name(quotes)
-
-    # retweets_values = type_tweets_values.filter(tweet_type='Ретвит')
-    # retweets = retweets_values.values_list('original_screen_name')
-    # retweets_count = get_tweet_quote_screen_name(retweets)
-
-    # TwitterTweetsStatistics(
-    #     user_id=user_id,
-    #     week_time_activity= models.JSONField()
-    #     date_activity= models.JSONField()
-    #     week_activity= models.JSONField()
-    #     devices= models.JSONField()
-    #     url_mentions= models.JSONField(null=True)
-    #     user_mentions= models.JSONField(null=True)
-    #     hashtags= models.JSONField(null=True)
-    #     quotes= models.JSONField(null=True)
-    #     type_tweets= models.JSONField()
-    #     retweets= 
-    # )
+        comments_count += 1
+        if comments_count >= max_count:
+            break

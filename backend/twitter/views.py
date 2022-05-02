@@ -13,16 +13,10 @@ from .celery import *
 from .models import TwitterTweet, TwitterUser
 from .serializers import *
 from .services import *
-from .tasks import example, scrape_hashtags, scrape_persons
+from .tasks import scrape_hashtags, scrape_persons
 
 
 logger.add("logs/views.log", format="{time} {message}", level="DEBUG", rotation="500 MB", compression="zip", encoding='utf-8')
-
-# class Webdriver_DownloadTweetsByHashtags(APIView):
-#     permission_classes = [AllowAny]
-    
-#     def get(self, request, hashtag_value):
-#         return Response('Does not work :(')
 
 
 class V1_DownloadPerson(APIView):
@@ -248,18 +242,16 @@ class V1_GetLikesById(APIView):
         serializer = TweetLikesSerializer(data=data, many=True)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
-        return Response(data)   
+        return Response(data)
 
-# class CalculateUserStatistics(APIView):
-#     permission_classes = [AllowAny]
 
-#     def get(self, request, screen_name):
-#         # statistics = get_tweets_statistics(screen_name)
-#         # print(statistics)
-#         # quotes = models.JSONField(null=True)
-#         # retweets = models.JSONField(null=True)
+class V2_GetCommentsByScreenName(APIView):
+    permission_classes = [AllowAny]
+    serializer_class = CommentsListSerializer
 
-#         # serializer = self.serializer_class(data=request.data)
-#         # serializer.is_valid(raise_exception=True)
-#         # serializer.save()
-#         return Response('Does not work :(')
+    def get(self, request, screen_name, max_count):
+        v2_get_comments(screen_name, max_count)
+        comments = TwitterComments.objects.filter(author_screen_name=screen_name)
+        print(len(comments))
+        serializer = self.serializer_class(instance=comments, many=True)
+        return Response(serializer.data)
