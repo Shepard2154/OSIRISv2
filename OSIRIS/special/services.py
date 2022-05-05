@@ -11,8 +11,8 @@ from django.conf import settings
 from django.db.utils import IntegrityError
 from loguru import logger
 
-from .models import Replies, Profiles, Tweets, Hashtags, Users
-from .serializers import TweetsSerializer, UsersSerializer, RepliesSerializer, TweetsListSerializer
+from .models import Replies, Tweets, Hashtags, Users
+from .serializers import TweetsSerializer, UsersSerializer, RepliesSerializer
 from .hashtags import twitter
 
 

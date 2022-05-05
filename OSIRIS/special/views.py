@@ -34,23 +34,43 @@ class V1_DownloadUser(APIView):
 
 class V1_GetTweetsFromPerson(APIView):
     permission_classes = [AllowAny]
-    serializer_class = TweetsListSerializer
+    serializer_class = TweetsSerializer
+    downloaded_count = 0
+    updated_count = 0
 
     def get(self, request, screen_name):
-        tweets = list(map(from_v1_tweet, v1_get_tweets(screen_name)))
+        tweets_to_save = list(map(from_v1_tweet, v1_get_tweets(screen_name)))
 
-        serializer = self.serializer_class(data=tweets, many=True)
-        serializer.is_valid()
+        for tweet in tweets_to_save:
+            serializer = self.serializer_class(data=tweet)
+            serializer.is_valid(raise_exception=True)
+            try:
+                serializer.save()
+                self.downloaded_count += 1
+            except IntegrityError:
+                logger.warning(f"Этот твит ({serializer.data.get('id')}) уже содержится в Базе Данных!")
+                serializer.update(Tweets.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
+                self.updated_count += 1
 
-        return Response(serializer.data)
+        return Response(f"{self.downloaded_count} новых твитов {screen_name} добавлено в БД! {self.updated_count} обновлено!")
 
 
-class V1_GetTweetById(APIView):
+class V1_DownloadTweetById(APIView):
     permission_classes = [AllowAny]
+    serializer_class = TweetsSerializer
 
     def get(self, request, tweet_id):
         tweet = v1_get_tweet(tweet_id)._json
         
+        tweet_to_save = from_v1_tweet(tweet)
+        serializer = self.serializer_class(data=tweet_to_save)
+        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.save()
+        except IntegrityError:
+            logger.warning(f"Этот твит ({serializer.data.get('id')}) уже содержится в Базе Данных!")
+            serializer.update(Tweets.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
+
         return Response(tweet)
 
         
@@ -70,7 +90,7 @@ class V2_DownloadTweetsByHashtags(APIView):
                     serializer.save()
                     self.downloaded_count += 1
                 except IntegrityError:
-                    logger.warning(f"Этот твит ({serializer.data.get('id')}) уже содержится в Базе Данных! Скачивание приостановлено.")
+                    logger.warning(f"Этот твит ({serializer.data.get('id')}) уже содержится в Базе Данных!")
                     serializer.update(Tweets.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
             else:
                 return Response(f"Сбор по {'#' + hashtag_value} прекращен!")
@@ -104,7 +124,6 @@ class V2_DownloadUser(APIView):
         settings.REDIS_INSTANCE.set(screen_name, 1)
 
         user = Users.objects.filter(screen_name=screen_name)
-        print(len(user))
         serializer = self.serializer_class(instance=user, many=True)
 
         return Response(serializer.data)
@@ -222,7 +241,7 @@ class MonitoringUsers(APIView):
                 return Response(str(task)) 
 
 
-class V1_GetLikesById(APIView):
+class V1_DownloadLikesById(APIView):
     permission_classes = [AllowAny]
    
     def get(self, request, screen_name):
@@ -233,7 +252,7 @@ class V1_GetLikesById(APIView):
         return Response(data)
 
 
-class V2_GetCommentsByScreenName(APIView):
+class V2_DownloadCommentsByScreenName(APIView):
     permission_classes = [AllowAny]
     serializer_class = RepliesListSerializer
 
