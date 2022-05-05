@@ -79,7 +79,7 @@ class Likes(ExportModelOperationsMixin('likes'), models.Model):
     
  
     def __str__(self):
-        return self.tweet_author
+        return self.profile
 
     class Meta:
         db_table = 'likes'
