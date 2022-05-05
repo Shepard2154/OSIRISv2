@@ -21,8 +21,10 @@ def v2_download_tweets_by_hashtag(hashtag_item):
     scraper = twitter.TwitterHashtagScraper(hashtag_item)
 
     for tweet in scraper.get_items():
+        logger.debug(tweet.get_data())
         if int(settings.REDIS_INSTANCE.get(hashtag_item)):
             tweet_to_save = from_v2_tweet(tweet)
+            logger.info(tweet_to_save)
             serializer = TweetsSerializer(data=tweet_to_save)
             serializer.is_valid(raise_exception=True)
 
@@ -59,30 +61,32 @@ def v2_get_user(screen_name):
 
 
 def from_v2_tweet(tweet):
-    id = tweet.get('id')
-    created = tweet.get('date')
-    text = tweet.get('content')
-    lang = tweet.get('lang')
-    source = tweet.get('sourceLabel')
+    id = tweet.id
+    created = tweet.date
+    text = tweet.content
+    lang = tweet.lang
+    source = tweet.sourceLabel
 
-    author_id = tweet.get('user').get('id')
-    author_screen_name = tweet.get('user').get('username')
+    author_id = tweet.user.id
+    author_screen_name = tweet.user.username
 
-    replies_count = tweet.get('replyCount')
-    retweets_count = tweet.get('retweetCount')
-    quotes_count = tweet.get('quoteCount')
-    likes_count = tweet.get('likeCount')
+    replies_count = tweet.replyCount
+    retweets_count = tweet.retweetCount
+    quotes_count = tweet.quoteCount
+    likes_count = tweet.likeCount
 
-    source_author = tweet.get('inReplyToUser').get('username') if tweet.get('inReplyToUser') else None
+    source_author = tweet.inReplyToUser
+    if source_author:
+        source_author = source_author.username
     source_created = datetime.datetime(2006, 3, 1, 0, 0, 0, 0)
-    source_id = tweet.get('inReplyToTweetId')
+    source_id = tweet.inReplyToTweetId
 
-    hashtags = tweet.get('hashtags')
+    hashtags = tweet.hashtags
     urls = []
-    if tweet.get('outlinks'):
-        urls += tweet.get('outlinks')
-        if tweet.get('tcooutlinks'):
-            urls += tweet.get('tcooutlinks')
+    if tweet.outlinks:
+        urls += tweet.outlinks
+        if tweet.tcooutlinks:
+            urls += tweet.tcooutlinks
 
     updated_at = datetime.datetime.now()
 

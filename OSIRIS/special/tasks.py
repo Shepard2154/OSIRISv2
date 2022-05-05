@@ -21,8 +21,10 @@ def scrape_hashtags(self, hashtags_values, all_flag, mode_flag):
         settings.REDIS_INSTANCE.set(hashtag_value, mode_flag)
 
     if mode_flag:
-        pool = mp.Pool(processes=4) 
-        pool.map(v2_download_tweets_by_hashtag, hashtags_values)
+        # pool = mp.Pool(processes=4) 
+        # pool.map(v2_download_tweets_by_hashtag, hashtags_values)
+        for hashtag_value in hashtags_values:
+            v2_download_tweets_by_hashtag(hashtag_value)
 
 
 @shared_task(bind=True)
