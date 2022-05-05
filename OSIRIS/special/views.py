@@ -3,7 +3,6 @@ import json
 import django
 import django_celery_beat
 from django.db.utils import IntegrityError
-from django.conf import settings
 from django_celery_beat.models import IntervalSchedule, PeriodicTask, PeriodicTasks
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -24,15 +23,22 @@ class V1_DownloadUser(APIView):
     serializer_class = UsersListSerializer
 
     def get(self, request, screen_name):
-        v1_download_user(screen_name)
+        user = v1_get_user(screen_name)
 
-        user = Users.objects.filter(screen_name=screen_name)
-        serializer = self.serializer_class(instance=user, many=True)
+        user_to_save = from_v1_user(user)
+        serializer = UsersSerializer(data=user_to_save)
+        serializer.is_valid(raise_exception=True)
+        
+        try:
+            serializer.save()
+        except IntegrityError:
+            logger.warning(f"Этот пользователь ({serializer.data.get('screen_name')}) уже содержится в Базе Данных!")
+            serializer.update(Users.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
 
         return Response(serializer.data)
 
 
-class V1_GetTweetsFromPerson(APIView):
+class V1_DownloadTweetsFromPerson(APIView):
     permission_classes = [AllowAny]
     serializer_class = TweetsSerializer
     downloaded_count = 0
@@ -44,6 +50,7 @@ class V1_GetTweetsFromPerson(APIView):
         for tweet in tweets_to_save:
             serializer = self.serializer_class(data=tweet)
             serializer.is_valid(raise_exception=True)
+
             try:
                 serializer.save()
                 self.downloaded_count += 1
@@ -65,6 +72,7 @@ class V1_DownloadTweetById(APIView):
         tweet_to_save = from_v1_tweet(tweet)
         serializer = self.serializer_class(data=tweet_to_save)
         serializer.is_valid(raise_exception=True)
+
         try:
             serializer.save()
         except IntegrityError:
@@ -73,28 +81,18 @@ class V1_DownloadTweetById(APIView):
 
         return Response(tweet)
 
-        
-class V2_DownloadTweetsByHashtags(APIView):
+    
+class V1_DownloadLikesById(APIView):
     permission_classes = [AllowAny]
-    serializer_class = TweetsSerializer
-    downloaded_count = 0
+   
+    def get(self, request, screen_name):
+        likes = v1_get_likes(screen_name)
 
-    def get(self, request, hashtag_value, power):
-        settings.REDIS_INSTANCE.set(hashtag_value, power)
-        for tweet in v2_download_tweets_by_hashtag(hashtag_value):
-            if int(settings.REDIS_INSTANCE.get(hashtag_value)):
-                tweet_to_save = from_v2_tweet(tweet)
-                serializer = self.serializer_class(data=tweet_to_save)
-                serializer.is_valid(raise_exception=True)
-                try:
-                    serializer.save()
-                    self.downloaded_count += 1
-                except IntegrityError:
-                    logger.warning(f"Этот твит ({serializer.data.get('id')}) уже содержится в Базе Данных!")
-                    serializer.update(Tweets.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
-            else:
-                return Response(f"Сбор по {'#' + hashtag_value} прекращен!")
-        return Response(f"Сбор по {'#' + hashtag_value} успешно завершен! Собрано {self.downloaded_count} твитов в БД")
+        serializer = LikesSerializer(data=likes, many=True)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+
+        return Response(likes)
 
 
 class V2_DownloadTweetsByManyHashtags(APIView):
@@ -119,12 +117,31 @@ class V2_DownloadUser(APIView):
     serializer_class = UsersSerializer
     
     def get(self, request, screen_name):
-        v2_download_user(screen_name)
+        user = v2_get_user(screen_name)
         
-        settings.REDIS_INSTANCE.set(screen_name, 1)
+        user_to_save = from_v2_user(user)
+        serializer = UsersSerializer(data=user_to_save)
+        serializer.is_valid(raise_exception=True)
 
-        user = Users.objects.filter(screen_name=screen_name)
-        serializer = self.serializer_class(instance=user, many=True)
+        try:
+            serializer.save()
+            logger.info(f"Этот пользователь ({serializer.data.get('screen_name')}) только что был добавлен в Базу Данных!")
+        except IntegrityError:
+            logger.warning(f"Этот пользователь ({serializer.data.get('screen_name')}) уже содержится в Базе Данных!")
+            serializer.update(Users.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
+
+        return Response(serializer.data)
+
+
+class V2_DownloadCommentsByScreenName(APIView):
+    permission_classes = [AllowAny]
+    serializer_class = RepliesListSerializer
+
+    def get(self, request, screen_name, max_count):
+        v2_download_comments(screen_name, max_count)
+
+        comments = Replies.objects.filter(author_screen_name=screen_name)
+        serializer = self.serializer_class(instance=comments, many=True)
 
         return Response(serializer.data)
 
@@ -133,7 +150,7 @@ class GetHashtagsFromFile(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        hashtags = get_hashtags_from_file()
+        hashtags = download_hashtags_from_file()
         return Response(hashtags)
 
 
@@ -241,23 +258,4 @@ class MonitoringUsers(APIView):
                 return Response(str(task)) 
 
 
-class V1_DownloadLikesById(APIView):
-    permission_classes = [AllowAny]
-   
-    def get(self, request, screen_name):
-        data = v1_get_likes(screen_name)
-        serializer = LikesSerializer(data=data, many=True)
-        if serializer.is_valid(raise_exception=True):
-            serializer.save()
-        return Response(data)
 
-
-class V2_DownloadCommentsByScreenName(APIView):
-    permission_classes = [AllowAny]
-    serializer_class = RepliesListSerializer
-
-    def get(self, request, screen_name, max_count):
-        v2_get_comments(screen_name, max_count)
-        comments = Replies.objects.filter(author_screen_name=screen_name)
-        serializer = self.serializer_class(instance=comments, many=True)
-        return Response(serializer.data)

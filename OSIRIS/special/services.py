@@ -1,6 +1,4 @@
 import datetime
-import json
-import profile
 import re
 from dateutil.parser import parse
 from pathlib import Path
@@ -24,8 +22,8 @@ def v2_download_tweets_by_hashtag(hashtag_item):
 
     for tweet in scraper.get_items():
         if int(settings.REDIS_INSTANCE.get(hashtag_item)):
-            valid_tweet = from_v2_tweet(tweet)
-            serializer = TweetsSerializer(data=valid_tweet)
+            tweet_to_save = from_v2_tweet(tweet)
+            serializer = TweetsSerializer(data=tweet_to_save)
             serializer.is_valid(raise_exception=True)
 
             try:
@@ -180,18 +178,10 @@ def v1_get_tweet(id):
     return tweet
 
 
-def v1_download_user(screen_name):
+def v1_get_user(screen_name):
     user = settings.TWITTER_APIV1.get_user(screen_name=screen_name)._json
 
-    user_to_save = from_v1_user(user)
-    serializer = UsersSerializer(data=user_to_save)
-    serializer.is_valid(raise_exception=True)
-    
-    try:
-        serializer.save()
-    except IntegrityError:
-        logger.warning(f"Этот пользователь ({serializer.data.get('screen_name')}) уже содержится в Базе Данных!")
-        serializer.update(Users.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
+    return user
 
 
 def from_v1_tweet(tweet):
@@ -272,7 +262,7 @@ def v1_get_likes(screen_name):
   return liked_tweets
 
 
-def v2_get_comments(screen_name, max_count=200):
+def v2_download_comments(screen_name, max_count=200):
     comments_count = 0
 
     for comment in twitter.TwitterSearchScraper(f'from:{screen_name} filter:replies').get_items():
@@ -292,7 +282,7 @@ def v2_get_comments(screen_name, max_count=200):
             break
 
 
-def get_hashtags_from_file():
+def download_hashtags_from_file():
     BASE_DIR = Path(__file__).resolve().parent.parent
 
     hashtags_df = pd.read_excel('static/hashtags.xlsx', usecols=[0,2,4,6,8], na_filter=False)
