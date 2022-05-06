@@ -140,7 +140,7 @@ TWITTER_AUTH = tweepy.OAuthHandler(os.getenv('CONSUMER_KEY'), os.getenv('CONSUME
 TWITTER_AUTH.set_access_token(os.getenv('ACCESS_KEY'), os.getenv('ACCESS_SECRET'))
 TWITTER_APIV1 = tweepy.API(TWITTER_AUTH, wait_on_rate_limit=True)
 
-REDIS_HOST = 'localhost'
+REDIS_HOST = '127.0.0.1'
 REDIS_PORT = 6379
 REDIS_INSTANCE = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=0)
 

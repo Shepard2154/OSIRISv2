@@ -45,21 +45,25 @@ class V1_DownloadTweetsFromPerson(APIView):
     updated_count = 0
 
     def get(self, request, screen_name):
-        tweets_to_save = list(map(from_v1_tweet, v1_get_tweets(screen_name)))
+        tweets = v1_get_tweets(screen_name)
+        if tweets:
+            tweets_to_save = list(map(from_v1_tweet, tweets))
 
-        for tweet in tweets_to_save:
-            serializer = self.serializer_class(data=tweet)
-            serializer.is_valid(raise_exception=True)
+            for tweet in tweets_to_save:
+                serializer = self.serializer_class(data=tweet)
+                serializer.is_valid(raise_exception=True)
 
-            try:
-                serializer.save()
-                self.downloaded_count += 1
-            except IntegrityError:
-                logger.warning(f"Этот твит ({serializer.data.get('id')}) уже содержится в Базе Данных!")
-                serializer.update(Tweets.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
-                self.updated_count += 1
+                try:
+                    serializer.save()
+                    self.downloaded_count += 1
+                except IntegrityError:
+                    logger.warning(f"Этот твит ({serializer.data.get('id')}) уже содержится в Базе Данных!")
+                    serializer.update(Tweets.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
+                    self.updated_count += 1
 
-        return Response(f"{self.downloaded_count} новых твитов {screen_name} добавлено в БД! {self.updated_count} обновлено!")
+            return Response(f"{self.downloaded_count} новых твитов {screen_name} добавлено в БД! {self.updated_count} обновлено!")
+        else:
+            return Response(f'Ничего не загружено! Тут https://twitter.com/{screen_name} есть твиты?')
 
 
 class V1_DownloadTweetById(APIView):
@@ -67,19 +71,21 @@ class V1_DownloadTweetById(APIView):
     serializer_class = TweetsSerializer
 
     def get(self, request, tweet_id):
-        tweet = v1_get_tweet(tweet_id)._json
-        
-        tweet_to_save = from_v1_tweet(tweet)
-        serializer = self.serializer_class(data=tweet_to_save)
-        serializer.is_valid(raise_exception=True)
+        tweet = v1_get_tweet(tweet_id)
+        if tweet:
+            tweet_to_save = from_v1_tweet(tweet)
+            serializer = self.serializer_class(data=tweet_to_save)
+            serializer.is_valid(raise_exception=True)
 
-        try:
-            serializer.save()
-        except IntegrityError:
-            logger.warning(f"Этот твит ({serializer.data.get('id')}) уже содержится в Базе Данных!")
-            serializer.update(Tweets.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
+            try:
+                serializer.save()
+            except IntegrityError:
+                logger.warning(f"Этот твит ({serializer.data.get('id')}) уже содержится в Базе Данных!")
+                serializer.update(Tweets.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
 
-        return Response(tweet)
+            return Response(serializer.data)
+        else:
+            return Response('Нет такого твита...')
 
     
 class V1_DownloadLikesById(APIView):
@@ -118,7 +124,7 @@ class V2_DownloadUser(APIView):
     
     def get(self, request, screen_name):
         user = v2_get_user(screen_name)
-        
+        print(user)
         user_to_save = from_v2_user(user)
         serializer = UsersSerializer(data=user_to_save)
         serializer.is_valid(raise_exception=True)

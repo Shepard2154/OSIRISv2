@@ -23,6 +23,7 @@ def v2_download_tweets_by_hashtag(hashtag_item):
     for tweet in scraper.get_items():
         logger.debug(tweet.get_data())
         if int(settings.REDIS_INSTANCE.get(hashtag_item)):
+            print(int(settings.REDIS_INSTANCE.get(hashtag_item)))
             tweet_to_save = from_v2_tweet(tweet)
             logger.info(tweet_to_save)
             serializer = TweetsSerializer(data=tweet_to_save)
@@ -132,6 +133,8 @@ def from_v2_user(user):
     valid_user['web'] = user.get('linkUrl')
     valid_user['birthday'] = datetime.datetime(2006, 3, 1, 0, 0, 0, 0)
     valid_user['category'] = user.get('label')
+    if valid_user['category']:
+        valid_user['category'] = valid_user['category'].description
 
     valid_user['created'] = user.get('created')
     valid_user['followers_count'] = user.get('followersCount')
@@ -159,25 +162,32 @@ def v1_get_tweets(screen_name):
         return tweets
 
     tweets.extend(current_tweets)
-    oldest_id = tweets[-1].id
 
-    while True:
-        current_tweets = settings.TWITTER_APIV1.user_timeline(
-            screen_name=screen_name, 
-            count=200, 
-            max_id=oldest_id-1, 
-            tweet_mode='extended'
-        )
-        
-        if current_tweets:
-            tweets.extend(current_tweets)
-            oldest_id = current_tweets[-1].id
-        else:
-            return tweets
+    if tweets:
+        oldest_id = tweets[-1].id
+
+        while True:
+            current_tweets = settings.TWITTER_APIV1.user_timeline(
+                screen_name=screen_name, 
+                count=200, 
+                max_id=oldest_id-1, 
+                tweet_mode='extended'
+            )
+            
+            if current_tweets:
+                tweets.extend(current_tweets)
+                oldest_id = current_tweets[-1].id
+            else:
+                return tweets
+    else:
+        return
 
 
 def v1_get_tweet(id):
-    tweet = settings.TWITTER_APIV1.get_status(id=id)
+    try:
+        tweet = settings.TWITTER_APIV1.get_status(id=id, tweet_mode='extended')
+    except tweepy.errors.NotFound:
+        return 
 
     return tweet
 

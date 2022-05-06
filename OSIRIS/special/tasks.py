@@ -37,5 +37,7 @@ def scrape_persons(self, persons_screen_names, all_flag, mode_flag):
         settings.REDIS_INSTANCE.set(person_screen_name, mode_flag)
 
     if mode_flag:
-        pool = mp.Pool(processes=4) 
-        pool.map(v2_download_user, persons_screen_names)
+        # pool = mp.Pool(processes=4) 
+        # pool.map(v2_download_user, persons_screen_names)
+        for person_screen_name in persons_screen_names:
+            v2_download_user(person_screen_name)
