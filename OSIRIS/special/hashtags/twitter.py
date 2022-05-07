@@ -817,6 +817,9 @@ class TwitterUserScraper(TwitterSearchScraper):
 			self._query = f'from:{self._username}'
 		yield from super().get_items()
 
+	def _user_to_user(self, user):
+		return User(**user)
+
 	@staticmethod
 	def is_valid_username(s):
 		return (1 <= len(s) <= 15 and s.strip(string.ascii_letters + string.digits + '_') == '') or (s and s.strip(string.digits) == '')

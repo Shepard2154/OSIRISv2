@@ -35,7 +35,19 @@ def v2_download_tweets_by_hashtag(hashtag_item):
             except IntegrityError:
                 logger.warning(f"Этот твит ({serializer.data.get('id')}) уже содержится в Базе Данных!")
                 serializer.update(Tweets.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
-                
+            
+            user = tweet.user
+            user_to_save = from_v2_user(user)
+            serializer = UsersSerializer(data=user_to_save)
+            serializer.is_valid(raise_exception=True)
+
+            try:
+                serializer.save()
+                logger.info(f"Этот пользователь ({serializer.data.get('screen_name')}) только что был добавлен в Базу Данных!")
+            except IntegrityError:
+                logger.warning(f"Этот пользователь ({serializer.data.get('screen_name')}) уже содержится в Базе Данных!")
+                serializer.update(Users.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
+
         else: break
 
 
@@ -56,7 +68,7 @@ def v2_download_user(screen_name):
 
 def v2_get_user(screen_name):
     scraper = twitter.TwitterUserScraper(screen_name)
-    user = scraper._get_entity()
+    user = scraper._user_to_user(scraper._get_entity())
 
     return user
 
@@ -121,27 +133,27 @@ def from_v2_tweet(tweet):
 
 def from_v2_user(user):
     valid_user = {}
-    valid_user['id'] = user.get('id')
-    valid_user['screen_name'] = user.get('username')
-    valid_user['name'] = user.get('displayname')
-    valid_user['twitter_url'] = f"https://twitter.com/{valid_user.get('screen_name')}"
-    valid_user['profile_image_url'] = user.get('profileImageUrl')
+    valid_user['id'] = user.id
+    valid_user['screen_name'] = user.username
+    valid_user['name'] = user.displayname
+    valid_user['twitter_url'] = f"https://twitter.com/{user.username}"
+    valid_user['profile_image_url'] = user.profileImageUrl
 
-    valid_user['description'] = user.get('description')
+    valid_user['description'] = user.description
     valid_user['hashtags'] = []
-    valid_user['location'] = user.get('location')
-    valid_user['web'] = user.get('linkUrl')
+    valid_user['location'] = user.location
+    valid_user['web'] = user.linkUrl
     valid_user['birthday'] = datetime.datetime(2006, 3, 1, 0, 0, 0, 0)
-    valid_user['category'] = user.get('label')
+    valid_user['category'] = user.label
     if valid_user['category']:
         valid_user['category'] = valid_user['category'].description
 
-    valid_user['created'] = user.get('created')
-    valid_user['followers_count'] = user.get('followersCount')
-    valid_user['friends_count'] = user.get('friendsCount')
-    valid_user['likes_count'] = user.get('favouritesCount')
-    valid_user['statuses_count'] = user.get('statusesCount')
-    valid_user['listed_count'] = user.get('listedCount')
+    valid_user['created'] = user.created
+    valid_user['followers_count'] = user.followersCount
+    valid_user['friends_count'] = user.friendsCount
+    valid_user['likes_count'] = user.favouritesCount
+    valid_user['statuses_count'] = user.statusesCount
+    valid_user['listed_count'] = user.listedCount
 
     valid_user['updated_at'] = datetime.datetime.now()
 

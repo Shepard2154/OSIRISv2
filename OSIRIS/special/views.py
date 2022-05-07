@@ -175,11 +175,10 @@ class MonitoringHashtags(APIView):
             return Response('Укажите в POST-запросе поле interval (в часах): 1..n')
         if hashtags_values or all_flag:
             try:
-                # Для удобного тестирования оставил интервал в секундах
-                schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.SECONDS)
+                schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.HOURS)
             except django_celery_beat.models.IntervalSchedule.MultipleObjectsReturned:
-                schedule = IntervalSchedule.objects.filter(every=interval, period=IntervalSchedule.SECONDS).delete()
-                schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.SECONDS)
+                schedule = IntervalSchedule.objects.filter(every=interval, period=IntervalSchedule.HOURS).delete()
+                schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.HOURS)
 
             if mode_flag:
                 try:
@@ -227,11 +226,10 @@ class MonitoringUsers(APIView):
             return Response('Укажите в POST-запросе поле interval (в часах): 1..n')
         if person_screen_names or all_flag:
             try:
-                # Для удобного тестирования оставил интервал в секундах
-                schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.SECONDS)
+                schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.HOURS)
             except django_celery_beat.models.IntervalSchedule.MultipleObjectsReturned:
-                schedule = IntervalSchedule.objects.filter(every=interval, period=IntervalSchedule.SECONDS).delete()
-                schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.SECONDS)
+                schedule = IntervalSchedule.objects.filter(every=interval, period=IntervalSchedule.HOURS).delete()
+                schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.HOURS)
 
             if mode_flag:
                 try:

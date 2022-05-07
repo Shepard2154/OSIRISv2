@@ -4,7 +4,7 @@ from celery import shared_task
 from django.conf import settings
 from loguru import logger
 
-from .models import Hashtags, Profiles
+from .models import Hashtags, Profiles, Users
 from .services import *
 
 
@@ -30,8 +30,8 @@ def scrape_hashtags(self, hashtags_values, all_flag, mode_flag):
 @shared_task(bind=True)
 def scrape_persons(self, persons_screen_names, all_flag, mode_flag):
     if all_flag:
-        persons_screen_names = Profiles.objects.all().values('person_screen_name')
-        persons_screen_names = [person_screen_name.get('person_screen_name') for person_screen_name in persons_screen_names] 
+        persons_screen_names = Users.objects.all().values('screen_name')
+        persons_screen_names = [person_screen_name.get('screen_name') for person_screen_name in persons_screen_names] 
 
     for person_screen_name in persons_screen_names:
         settings.REDIS_INSTANCE.set(person_screen_name, mode_flag)
