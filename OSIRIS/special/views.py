@@ -1,4 +1,6 @@
+import csv
 import json
+from operator import index
 
 import django
 import django_celery_beat
@@ -262,4 +264,20 @@ class MonitoringUsers(APIView):
                 return Response(str(task)) 
 
 
+class DatabaseToCSV(APIView):
+    permission_classes = [AllowAny]
 
+    def get(self, request):
+        df = pd.DataFrame(list(Users.objects.all().values()))
+        df.to_csv('static/Users.csv', index=0)
+        
+        df = pd.DataFrame(list(Tweets.objects.all().values()))
+        df.to_csv('static/Tweets.csv', index=0)
+
+        df = pd.DataFrame(list(Likes.objects.all().values()))
+        df.to_csv('static/Likes.csv', index=0)
+
+        df = pd.DataFrame(list(Replies.objects.all().values()))
+        df.to_csv('static/Replies.csv', index=0)
+
+        return Response('Файлы сохранены!') 

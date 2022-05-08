@@ -17,4 +17,6 @@ urlpatterns = [
 
     path('monitoring/hashtags/', MonitoringHashtags.as_view()),
     path('monitoring/persons/', MonitoringUsers.as_view()),
+
+    path('db/csv/', DatabaseToCSV.as_view()),
 ]

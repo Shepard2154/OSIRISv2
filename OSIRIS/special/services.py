@@ -324,3 +324,7 @@ def download_hashtags_from_file():
         Hashtags.objects.update_or_create(value=hashtag)
 
     return all_hashtags
+
+
+def get_model_fields(model):
+    return model._meta.fields
