@@ -6,7 +6,7 @@ from .models import Replies, Tweets, Users, Likes
 class UsersSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     screen_name = serializers.CharField()
-    name = serializers.CharField()
+    name = serializers.CharField(allow_blank=True)
     twitter_url = serializers.CharField()
     profile_image_url = serializers.CharField(allow_blank=True)
 

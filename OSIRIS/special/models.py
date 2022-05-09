@@ -6,7 +6,7 @@ from django_prometheus.models import ExportModelOperationsMixin
 class Users(ExportModelOperationsMixin('users'), models.Model):
     id = models.BigIntegerField(primary_key=True)
     screen_name = models.CharField(max_length=250, unique=True)
-    name = models.CharField(max_length=250)
+    name = models.CharField(max_length=250, blank=True)
     twitter_url = models.CharField(max_length=100, default='', blank=True, null=True)
     profile_image_url = models.CharField(max_length=250, default='', blank=True)
 

@@ -11,7 +11,7 @@ from .services import *
 logger.add("static/logs/special_tasks.log", format="{time} {message}", level="DEBUG", rotation="500 MB", compression="zip", encoding='utf-8')
 
 
-@shared_task(bind=True)
+@shared_task(bind=True, time_limit=31536000)
 def scrape_hashtags(self, hashtags_values, all_flag, mode_flag):
     if all_flag:
         hashtags_values = Hashtags.objects.all().values('value')
@@ -27,7 +27,7 @@ def scrape_hashtags(self, hashtags_values, all_flag, mode_flag):
             v2_download_tweets_by_hashtag(hashtag_value)
 
 
-@shared_task(bind=True)
+@shared_task(bind=True, time_limit=31536000)
 def scrape_persons(self, persons_screen_names, all_flag, mode_flag):
     if all_flag:
         persons_screen_names = Users.objects.all().values('screen_name')

@@ -21,7 +21,6 @@ def v2_download_tweets_by_hashtag(hashtag_item):
     scraper = twitter.TwitterHashtagScraper(hashtag_item)
 
     for tweet in scraper.get_items():
-        logger.debug(tweet.get_data())
         if int(settings.REDIS_INSTANCE.get(hashtag_item)):
             print(int(settings.REDIS_INSTANCE.get(hashtag_item)))
             tweet_to_save = from_v2_tweet(tweet)
@@ -49,7 +48,9 @@ def v2_download_tweets_by_hashtag(hashtag_item):
                 logger.warning(f"Этот пользователь ({serializer.data.get('screen_name')}) уже содержится в Базе Данных!")
                 serializer.update(Users.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
 
-        else: break
+        else:
+            logger.debug(f"Остановлен сбор данных по #{hashtag_item}") 
+            break
 
 
 def v2_download_user(screen_name):
