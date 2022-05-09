@@ -1,6 +1,5 @@
-import csv
 import json
-from operator import index
+from xxlimited import new
 
 import django
 import django_celery_beat
@@ -281,3 +280,24 @@ class DatabaseToCSV(APIView):
         df.to_csv('static/Replies.csv', index=0)
 
         return Response('Файлы сохранены!') 
+
+
+class TweetsByHashtagToCSV(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        hashtags_length = {}
+
+        df = pd.DataFrame(list(Tweets.objects.all().values()))
+
+        hashtags_values = Hashtags.objects.all().values('value')
+        hashtags_values = [hashtag.get('value') for hashtag in hashtags_values] 
+
+        new_df = df.loc[df.hashtags.notnull()]
+
+        for hashtag in hashtags_values: 
+            hashtag_df = new_df.loc[new_df.hashtags.map(lambda x: hashtag in x)]
+            hashtag_df.to_csv(f"static/{hashtag}_tweets.csv", index=0)
+            hashtags_length[hashtag] = len(hashtag_df)
+
+        return Response(hashtags_length) 

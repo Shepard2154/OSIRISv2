@@ -19,4 +19,5 @@ urlpatterns = [
     path('monitoring/persons/', MonitoringUsers.as_view()),
 
     path('db/csv/', DatabaseToCSV.as_view()),
+    path('db/hashtags/csv/', TweetsByHashtagToCSV.as_view()),
 ]

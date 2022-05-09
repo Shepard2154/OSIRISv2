@@ -38,6 +38,7 @@ def v2_download_tweets_by_hashtag(hashtag_item):
             
             user = tweet.user
             user_to_save = from_v2_user(user)
+            logger.info(user_to_save)
             serializer = UsersSerializer(data=user_to_save)
             serializer.is_valid(raise_exception=True)
 
