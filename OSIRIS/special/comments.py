@@ -1,3 +1,8 @@
+import snscrape.modules.twitter as sntwitter
+import itertools
+import json
+import datetime
+
 def defaultconverter(o):
   if isinstance(o, datetime.datetime):
     return o.__str__() 
