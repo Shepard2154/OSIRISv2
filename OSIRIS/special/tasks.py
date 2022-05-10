@@ -21,10 +21,13 @@ def scrape_hashtags(self, hashtags_values, all_flag, mode_flag):
         settings.REDIS_INSTANCE.set(hashtag_value, mode_flag)
 
     if mode_flag:
-        # pool = mp.Pool(processes=4) 
+        with mp.Pool(processes=3) as pool:
+            pool.map(v2_download_tweets_by_hashtag, hashtags_values)
+
         # pool.map(v2_download_tweets_by_hashtag, hashtags_values)
-        for hashtag_value in hashtags_values:
-            v2_download_tweets_by_hashtag(hashtag_value)
+
+        # for hashtag_value in hashtags_values:
+        #     v2_download_tweets_by_hashtag(hashtag_value)
 
 
 @shared_task(bind=True, time_limit=31536000)
@@ -37,7 +40,7 @@ def scrape_persons(self, persons_screen_names, all_flag, mode_flag):
         settings.REDIS_INSTANCE.set(person_screen_name, mode_flag)
 
     if mode_flag:
-        # pool = mp.Pool(processes=4) 
-        # pool.map(v2_download_user, persons_screen_names)
-        for person_screen_name in persons_screen_names:
-            v2_download_user(person_screen_name)
+        pool = mp.Pool(processes=4) 
+        pool.map(v2_download_user, persons_screen_names)
+        # for person_screen_name in persons_screen_names:
+        #     v2_download_user(person_screen_name)

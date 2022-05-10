@@ -12,10 +12,10 @@ class Users(ExportModelOperationsMixin('users'), models.Model):
 
     description = models.CharField(max_length=2500, default='', blank=True, null=True)
     hashtags = models.JSONField(null=True)
-    location = models.CharField(max_length=100, default='', blank=True, null=True)
-    web = models.CharField(max_length=300, default='', blank=True, null=True)
+    location = models.CharField(max_length=2500, default='', blank=True, null=True)
+    web = models.CharField(max_length=2500, default='', blank=True, null=True)
     birthday = models.DateTimeField()
-    category = models.CharField(max_length=200, default='', blank=True, null=True)
+    category = models.CharField(max_length=1000, default='', blank=True, null=True)
 
     created = models.DateTimeField()
     followers_count = models.BigIntegerField(default=0, blank=True, null=True)

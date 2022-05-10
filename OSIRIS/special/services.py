@@ -22,7 +22,7 @@ def v2_download_tweets_by_hashtag(hashtag_item):
 
     for tweet in scraper.get_items():
         if int(settings.REDIS_INSTANCE.get(hashtag_item)):
-            print(int(settings.REDIS_INSTANCE.get(hashtag_item)))
+            logger.debug(f"----------{hashtag_item}----------")
             tweet_to_save = from_v2_tweet(tweet)
             logger.info(tweet_to_save)
             serializer = TweetsSerializer(data=tweet_to_save)
