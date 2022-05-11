@@ -289,10 +289,15 @@ def v1_get_likes_user(screen_name):
     likes.append({'user': screen_name, 'liked_user': i.user.screen_name, 'liked_user_id': i.user.id, 'tweet_text': i.text , 'tweet_hashtags': re.findall(r'(#\w+)', i.text), 'tweet_links': re.findall("(?P<url>https?://[^\s]+)", i.text)})
   return likes
 
+#converting datetime object to str for using serializer to compare .json file
+def defaultconverter(o):
+  if isinstance(o, datetime.datetime):
+      return o.__str__()
 
-def v2_get_comments(screen_name, max_count=200):
+# uses tweet_id to collect all comments to tweet
+def v2_get_comments(tweet_id, max_count=200):
     comments_count = 0
-    for comment in twitter.TwitterSearchScraper(f'from:{screen_name} filter:replies').get_items():
+    for comment in twitter.TwitterSearchScraper(f'filter:replies conversation_id:{tweet_id}').get_items():
         valid_tweet = from_v2_tweet(comment)
         serializer = TwitterCommentsSerializer(data=valid_tweet)
         serializer.is_valid(raise_exception=True)
