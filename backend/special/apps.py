@@ -1,8 +1,8 @@
 from django.apps import AppConfig
 
 
-class TwitterConfig(AppConfig):
-    name = 'twitter'
+class SpecialConfig(AppConfig):
+    name = 'special'
 
     def ready(self):
         import celery

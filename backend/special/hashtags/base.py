@@ -11,8 +11,6 @@ import warnings
 import requests
 from loguru import logger
 
-# logger.add("logs/hashtags.log", format="{time} {message}", level="DEBUG", rotation="500 MB", compression="zip", encoding='utf-8')
-
 
 class _DeprecatedProperty:
 	def __init__(self, name, repl, replStr):

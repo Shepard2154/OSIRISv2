@@ -1,0 +1,55 @@
+version: "3"
+
+services:
+  osiris-db:
+    container_name: osiris-db
+    image: postgres
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    
+  osiris-redis:
+    container_name: osiris-redis
+    image: redis:6.2-alpine
+    restart: always
+    volumes:
+      - ./data/redis:/var/lib/redis/data
+
+    
+  django-backend:
+    container_name: osiris-backend 
+    build: ./backend
+    command: sh -c "python ./backend/manage.py makemigrations && python ./backend/manage.py migrate && python ./backend/manage.py initadmin && python ./backend/manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    depends_on:
+      - osiris-db
+      - osiris-redis
+
+  celery-worker:
+      container_name: osiris-celery-worker
+      restart: always
+      build: ./backend
+      command: sh -c "celery -A special worker -l info -P threads"
+      depends_on:
+        - django-backend
+        - osiris-redis
+
+  celery-beat:
+    container_name: osiris-celery-beat
+    restart: always
+    build: ./backend
+    command: sh -c "celery -A special beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    depends_on:
+      - celery-worker
+      - osiris-redis
+      

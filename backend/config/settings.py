@@ -16,17 +16,17 @@ DJANGO_SETTINGS_MODULE = 'config.settings'
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['*', '127.0.0.1']
+ALLOWED_HOSTS = ['*']
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
+        # 'rest_framework.authentication.TokenAuthentication',
+        # 'rest_framework.authentication.SessionAuthentication',
+        # 'rest_framework.authentication.BasicAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-        'rest_framework.permissions.AllowAny',
+        # 'rest_framework.permissions.IsAuthenticated',
+        # 'rest_framework.permissions.AllowAny',
     ]
 }
 
@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     'rest_framework',
     
     'common.apps.CommonConfig',
-    'twitter.apps.TwitterConfig',
+    'special.apps.SpecialConfig',
 ]
 
 MIDDLEWARE = [
@@ -87,10 +87,10 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'osiris',
-        'USER': 'osiris_admin',
-        'PASSWORD': 'osirisisfuture',
-        'HOST': 'localhost',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': 'osiris-db',
         'POST': '',
     }
 }
@@ -127,6 +127,9 @@ STATIC_URL = '/static/'
 
 MEDIA_ROOT = f'{BASE_DIR}/media'
 MEDIA_URL = '/media/'
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, 'static'),
+)
 
 CORS_ORIGIN_ALLOW_ALL = True 
 
@@ -140,12 +143,13 @@ TWITTER_AUTH = tweepy.OAuthHandler(os.getenv('CONSUMER_KEY'), os.getenv('CONSUME
 TWITTER_AUTH.set_access_token(os.getenv('ACCESS_KEY'), os.getenv('ACCESS_SECRET'))
 TWITTER_APIV1 = tweepy.API(TWITTER_AUTH, wait_on_rate_limit=True)
 
-REDIS_HOST = 'localhost'
+REDIS_HOST = 'osiris-redis'
 REDIS_PORT = 6379
 REDIS_INSTANCE = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=0)
 
-CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
-CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"
+CELERY_BROKER_URL = "redis://osiris-redis:6379/0"
+CELERY_RESULT_BACKEND = "redis://osiris-redis:6379/0"
 CELERY_TIMEZONE = "Europe/Moscow"
 CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 1 * 60
+
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10240

@@ -30,9 +30,8 @@ import time
 import typing
 import urllib.parse
 
-from loguru import logger
-
 from . import base
+
 
 _logger = logging.getLogger(__name__)
 _API_AUTHORIZATION_HEADER = os.getenv('TWITTER_APIV2')
@@ -590,16 +589,14 @@ class _TwitterAPIScraper(base.Scraper):
 		if (inReplyToTweetId := tweet.get('in_reply_to_status_id_str')):
 			kwargs['inReplyToTweetId'] = int(inReplyToTweetId)
 			inReplyToUserId = int(tweet['in_reply_to_user_id_str'])
-			if inReplyToUserId == kwargs['user'].get('id'):
+			if inReplyToUserId == kwargs['user'].id:
 				kwargs['inReplyToUser'] = kwargs['user']
 			elif tweet['entities'].get('user_mentions'):
 				for u in tweet['entities']['user_mentions']:
 					if u['id_str'] == tweet['in_reply_to_user_id_str']:
-						# kwargs['inReplyToUser'] = User(username = u['screen_name'], id = u['id'] if 'id' in u else int(u['id_str']), displayname = u['name'])
-						kwargs['inReplyToUser'] = u
+						kwargs['inReplyToUser'] = User(username = u['screen_name'], id = u['id'] if 'id' in u else int(u['id_str']), displayname = u['name'])
 			if 'inReplyToUser' not in kwargs:
-				# kwargs['inReplyToUser'] = User(username = tweet['in_reply_to_screen_name'], id = inReplyToUserId)
-				kwargs['inReplyToUser'] = tweet['in_reply_to_screen_name']
+				kwargs['inReplyToUser'] = User(username = tweet['in_reply_to_screen_name'], id = inReplyToUserId)
 		if tweet['entities'].get('user_mentions'):
 			kwargs['mentionedUsers'] = [User(username = u['screen_name'], id = u['id'] if 'id' in u else int(u['id_str']), displayname = u['name']) for u in tweet['entities']['user_mentions']]
 
@@ -622,7 +619,7 @@ class _TwitterAPIScraper(base.Scraper):
 		if tweet['entities'].get('symbols'):
 			kwargs['cashtags'] = [o['text'] for o in tweet['entities']['symbols']]
 		# return Tweet(**kwargs)
-		return kwargs
+		return Tweet(**kwargs)
 
 	def _render_text_with_urls(self, text, urls):
 		if not urls:
@@ -663,8 +660,7 @@ class _TwitterAPIScraper(base.Scraper):
 		kwargs['profileBannerUrl'] = user.get('profile_banner_url')
 		if 'ext' in user and (label := user['ext']['highlightedLabel']['r']['ok'].get('label')):
 			kwargs['label'] = self._user_label_to_user_label(label)
-		# return User(**kwargs)
-		return kwargs
+		return User(**kwargs)
 
 	def _user_label_to_user_label(self, label):
 		labelKwargs = {}
@@ -675,7 +671,7 @@ class _TwitterAPIScraper(base.Scraper):
 			labelKwargs['badgeUrl'] = label['badge']['url']
 		if 'longDescription' in label and 'text' in label['longDescription']:
 			labelKwargs['longDescription'] = label['longDescription']['text']
-		return labelKwargs['description']
+		return UserLabel(**labelKwargs)
 
 	@classmethod
 	def cli_construct(cls, argparseArgs, *args, **kwargs):
@@ -820,6 +816,9 @@ class TwitterUserScraper(TwitterSearchScraper):
 			self._isUserId = False
 			self._query = f'from:{self._username}'
 		yield from super().get_items()
+
+	def _user_to_user(self, user):
+		return User(**user)
 
 	@staticmethod
 	def is_valid_username(s):
