@@ -15,6 +15,7 @@ services:
     container_name: osiris-redis
     image: redis:6.2-alpine
     restart: always
+    command: sh -c "echo "vm.overcommit_memory = 1"> /etc/sysctl.conf"
     volumes:
       - ./data/redis:/var/lib/redis/data
 
