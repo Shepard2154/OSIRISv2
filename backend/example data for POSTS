@@ -6,6 +6,11 @@
 }
 
 {
+    "name": "small test",
+    "mode_flag": 0
+}
+
+{
     "name": "covid tweets",
     "values": ["covid"],
     "mode_flag": 1
@@ -25,10 +30,19 @@
 
 #/special/monitoring/hashtags/
 {
+    "name": "monitoring test",
     "values": ["ole", "xsd"],
     "all_flag": false,
     "mode_flag": 1,
-    "interval": 10 
+    "interval": 1
+}
+
+{
+    "name": "monitoring test",
+    "values": ["ole", "xsd"],
+    "all_flag": false,
+    "mode_flag": 0,
+    "interval": 1
 }
 
 #/special/monitoring/persons/
@@ -36,11 +50,18 @@
     "values": ["confusedlexa", "JoeBiden"],
     "all_flag": false,
     "mode_flag": 1,
-    "interval": 10 
+    "interval": 1
+}
+
+{
+    "values": ["confusedlexa", "JoeBiden"],
+    "all_flag": false,
+    "mode_flag": 0,
+    "interval": 1
 }
 
 {
     "all_flag": true,
     "mode_flag": 1,
-    "interval": 10 
+    "interval": 1 
 }

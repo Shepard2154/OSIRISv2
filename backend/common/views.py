@@ -13,7 +13,8 @@ class GetProxyInfo(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        return Response(settings.PROXY)
+        # return Response(settings.PROXY)
+        return Response('Secret!')
 
 
 class FileUploadView(APIView):

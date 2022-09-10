@@ -201,11 +201,14 @@ class MonitoringHashtags(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        name = request.data.get('name')
         hashtags_values = request.data.get('values')
         mode_flag = int(request.data.get('mode_flag'))
         all_flag = request.data.get('all_flag')
         interval = request.data.get('interval')
 
+        if name == None:
+            return Response('Укажите в POST-запросе поле name с уникальным значением')
         if mode_flag == None:
             return Response('Укажите в POST-запросе поле mode_flag: 1 / 0')
         if interval == None:
@@ -217,13 +220,17 @@ class MonitoringHashtags(APIView):
                 schedule = IntervalSchedule.objects.filter(every=interval, period=IntervalSchedule.HOURS).delete()
                 schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.HOURS)
 
+            if all_flag:
+                hashtags_values = Hashtags.objects.all().values('value')
+                hashtags_values = [hashtag.get('value') for hashtag in hashtags_values]
+
             if mode_flag:
                 try:
                     task = PeriodicTask.objects.create(
                         interval=schedule, 
                         name='scrape_hashtags', 
                         task='special.tasks.scrape_hashtags', 
-                        args=json.dumps([hashtags_values, all_flag, mode_flag]))
+                        args=json.dumps([hashtags_values, name]))
 
                 except django.core.exceptions.ValidationError:
                     task = PeriodicTask.objects.filter(
@@ -234,7 +241,7 @@ class MonitoringHashtags(APIView):
                         interval=schedule, 
                         name='scrape_hashtags', 
                         task='special.tasks.scrape_hashtags', 
-                        args=json.dumps([hashtags_values, all_flag, mode_flag]))
+                        args=json.dumps([hashtags_values, name]))
 
                 task.save()
                 PeriodicTask.objects.update(last_run_at=None)
@@ -243,9 +250,15 @@ class MonitoringHashtags(APIView):
                 return Response(str(task))
             else:
                 task = PeriodicTask.objects.filter(name='scrape_hashtags', task='special.tasks.scrape_hashtags').delete()
-                scrape_hashtags.delay(hashtags_values, all_flag, mode_flag)
+                scrape_hashtags.delay(hashtags_values, name)
 
-                return Response(str(task))
+                active_celery_task = ActiveCeleryTasks.objects.get(pk=name)
+                scrape_hashtags.AsyncResult(active_celery_task.task_id).revoke()
+                active_celery_task.delete()
+                settings.REDIS_INSTANCE.set(name, 0)
+                logger.info(f"Task '{name}' was stopped")
+
+                return Response(f"Stopped celery task with name '{name}' and periodic {str(task)}")
 
 
 class MonitoringUsers(APIView):
