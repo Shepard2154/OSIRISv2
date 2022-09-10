@@ -1,5 +1,4 @@
 import json
-from xxlimited import new
 
 import django
 import django_celery_beat
@@ -10,10 +9,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .celery import *
-from .models import Tweets, Users
+from .models import Tweets, Users, ActiveCeleryTasks
 from .serializers import *
 from .services import *
-from .tasks import scrape_hashtags, scrape_persons
+from .tasks import scrape_hashtags, scrape_persons, scrape_limit_hashtags
 
 
 logger.add("static/logs/views.log", format="{time} {message}", level="INFO", rotation="500 MB", compression="zip", encoding='utf-8')
@@ -106,17 +105,42 @@ class V2_DownloadTweetsByManyHashtags(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        name = request.data.get('name')
         hashtags_values = request.data.get('values')
         mode_flag = int(request.data.get('mode_flag'))
         all_flag = request.data.get('all_flag')
-        
+
+        if name == None:
+            return Response('Укажите в POST-запросе поле name с уникальным значением')
         if mode_flag == None:
             return Response('Укажите в POST-запросе поле mode_flag: 1 / 0')
-        if hashtags_values or all_flag:
-            scrape_hashtags.delay(hashtags_values, all_flag, mode_flag)
-            return Response('ok')
-        else:
+        if all_flag == None and hashtags_values == None and mode_flag == 1:
             return Response('Укажите в POST-запросе поле values: [hashtag_1, ... , hashtag_n] или all_flag: true / false')
+
+        if mode_flag == 1:
+            if all_flag:
+                hashtags_values = Hashtags.objects.all().values('value')
+                hashtags_values = [hashtag.get('value') for hashtag in hashtags_values]
+
+            logger.debug(f"all_flag values: {hashtags_values}")
+            delayed_task = scrape_hashtags.delay(hashtags_values, name)
+            celery_task = ActiveCeleryTasks(name=name, task_id=delayed_task.id, entities=hashtags_values)
+            celery_task.save()
+            settings.REDIS_INSTANCE.set(name, 1)
+
+            return Response(f'Started celery task with id {delayed_task.id}')
+
+        elif mode_flag == 0:
+            active_celery_task = ActiveCeleryTasks.objects.get(pk=name)
+            scrape_hashtags.AsyncResult(active_celery_task.task_id).revoke()
+            active_celery_task.delete()
+            settings.REDIS_INSTANCE.set(name, 0)
+            logger.info(f"Task '{name}' was stopped")
+
+            return Response(f"Stopped celery task with name '{name}'")
+        
+        else:
+            return Response('Укажите в POST-запросе поле mode_flag: 1 / 0')
 
 
 class V2_DownloadTweetsByLimit(APIView):
@@ -126,10 +150,9 @@ class V2_DownloadTweetsByLimit(APIView):
         hashtags_values = Hashtags.objects.all().values('value')
         hashtags_values = [hashtag.get('value') for hashtag in hashtags_values] 
 
-        for hashtag_value in hashtags_values:
-            v2_download_tweets_by_hashtag_and_limit(hashtag_value, max_count)
+        delayed_task = scrape_limit_hashtags.delay(hashtags_values, max_count)
             
-        return Response('ok')
+        return Response(f"Started limited ({max_count}) scraping tweets by all hashtags")
 
 
 class V2_DownloadUser(APIView): 
@@ -230,15 +253,22 @@ class MonitoringUsers(APIView):
 
     def post(self, request):
         person_screen_names = request.data.get('values')
-        mode_flag = int(request.data.get('mode_flag'))
+        mode_flag = request.data.get('mode_flag')
         all_flag = request.data.get('all_flag')
         interval = request.data.get('interval')
 
         if mode_flag == None:
             return Response('Укажите в POST-запросе поле mode_flag: 1 / 0')
         if interval == None:
-            return Response('Укажите в POST-запросе поле interval (в часах): 1..n')
+            return Response('Укажите в POST-запросе поле interval (в часах, целое число): 1..n')
         if person_screen_names or all_flag:
+            if all_flag:
+                persons_screen_names = Users.objects.all().values('screen_name')
+                persons_screen_names = [person_screen_name.get('screen_name') for person_screen_name in persons_screen_names] 
+
+            # for person_screen_name in persons_screen_names:
+            #     settings.REDIS_INSTANCE.set(person_screen_name, mode_flag)
+
             try:
                 schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.HOURS)
             except django_celery_beat.models.IntervalSchedule.MultipleObjectsReturned:
@@ -251,7 +281,7 @@ class MonitoringUsers(APIView):
                         interval=schedule, 
                         name='scrape_persons', 
                         task='special.tasks.scrape_persons', 
-                        args=json.dumps([person_screen_names, all_flag, mode_flag]))
+                        args=json.dumps([person_screen_names]))
 
                 except django.core.exceptions.ValidationError:
                     task = PeriodicTask.objects.filter(
@@ -262,7 +292,7 @@ class MonitoringUsers(APIView):
                         interval=schedule, 
                         name='scrape_persons', 
                         task='special.tasks.scrape_persons', 
-                        args=json.dumps([person_screen_names, all_flag, mode_flag]))
+                        args=json.dumps([person_screen_names]))
 
                 task.save()
                 PeriodicTask.objects.update(last_run_at=None)
@@ -271,9 +301,11 @@ class MonitoringUsers(APIView):
                 return Response(str(task))
             else:
                 task = PeriodicTask.objects.filter(name='scrape_persons', task='special.tasks.scrape_persons').delete()
-                scrape_persons.delay(person_screen_names, all_flag, mode_flag)
+                scrape_persons.delay(person_screen_names)
 
                 return Response(str(task)) 
+        else:
+            return Response('Укажите в POST-запросе поле values: [screen_name_1, ... , screen_name_n] или all_flag: true / false')
 
 
 class DatabaseToCSV(APIView):

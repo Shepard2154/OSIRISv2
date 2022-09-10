@@ -139,3 +139,17 @@ class Profiles(models.Model):
         db_table = 'profiles'
         verbose_name = 'Профиль'
         verbose_name_plural = 'Список профилей'
+
+
+class ActiveCeleryTasks(models.Model):
+    name = models.CharField(max_length=1000, primary_key=True)
+    task_id = models.CharField(max_length=5000)
+    entities =  models.TextField()
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = 'active_celery_tasks'
+        verbose_name = 'Задача'
+        verbose_name_plural = 'Задачи'

@@ -208,7 +208,7 @@ class Scraper:
 				time.sleep(sleepTime)
 		else:
 			msg = f'{self._retries + 1} requests to {req.url} failed, giving up.'
-			logger.fatal(msg)
+			logger.error(msg)
 			raise ScraperException(msg)
 		raise RuntimeError('Reached unreachable code')
 

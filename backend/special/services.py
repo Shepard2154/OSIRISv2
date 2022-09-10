@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 import tweepy
 from django.conf import settings
-from django.db.utils import IntegrityError, OperationalError
+from django.db.utils import IntegrityError
 from loguru import logger
 
 from .models import Replies, Tweets, Hashtags, Users
@@ -17,12 +17,12 @@ from .hashtags import twitter
 logger.add("static/logs/special_services.log", format="{time} {message}", level="INFO", rotation="500 MB", compression="zip", encoding='utf-8')
 
 
-def v2_download_tweets_by_hashtag(hashtag_item):
+def v2_download_tweets_by_hashtag(hashtag_item, name):
     scraper = twitter.TwitterHashtagScraper(hashtag_item)
 
     for tweet in scraper.get_items():
-        if int(settings.REDIS_INSTANCE.get(hashtag_item)):
-            logger.debug(f"----------{hashtag_item}----------")
+        if int(settings.REDIS_INSTANCE.get(name)):
+            logger.info(f"----------scrapping #{hashtag_item}----------")
             tweet_to_save = from_v2_tweet(tweet)
             logger.info(tweet_to_save)
             serializer = TweetsSerializer(data=tweet_to_save)
@@ -40,7 +40,7 @@ def v2_download_tweets_by_hashtag(hashtag_item):
             logger.info(user_to_save)
             serializer = UsersSerializer(data=user_to_save)
             serializer.is_valid(raise_exception=True)
-
+            
             try:
                 serializer.save()
                 logger.info(f"Этот пользователь ({serializer.data.get('screen_name')}) только что был добавлен в Базу Данных!")
@@ -49,7 +49,7 @@ def v2_download_tweets_by_hashtag(hashtag_item):
                 serializer.update(Users.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
 
         else:
-            logger.debug(f"Остановлен сбор данных по #{hashtag_item}") 
+            logger.info(f"Остановлен сбор данных по {name}") 
             break
 
 
@@ -58,41 +58,36 @@ def v2_download_tweets_by_hashtag_and_limit(hashtag_item, limit=1000):
     count = 0
 
     for tweet in scraper.get_items():
-        if int(settings.REDIS_INSTANCE.get(hashtag_item)):
-            logger.debug(f"----------{hashtag_item}----------")
-            tweet_to_save = from_v2_tweet(tweet)
-            logger.info(tweet_to_save)
-            serializer = TweetsSerializer(data=tweet_to_save)
-            serializer.is_valid(raise_exception=True)
+        logger.info(f"----------Limited ({limit} tweets) scrapping #{hashtag_item}----------")
+        tweet_to_save = from_v2_tweet(tweet)
+        logger.info(tweet_to_save)
+        serializer = TweetsSerializer(data=tweet_to_save)
+        serializer.is_valid(raise_exception=True)
 
-            try:
-                serializer.save()
-                logger.info(f"Этот твит ({serializer.data.get('id')}) только что был добавлен в Базу Данных!")
-            except IntegrityError:
-                logger.warning(f"Этот твит ({serializer.data.get('id')}) уже содержится в Базе Данных!")
-                serializer.update(Tweets.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
-            
-            user = tweet.user
-            user_to_save = from_v2_user(user)
-            logger.info(user_to_save)
-            serializer = UsersSerializer(data=user_to_save)
-            serializer.is_valid(raise_exception=True)
+        try:
+            serializer.save()
+            logger.info(f"Этот твит ({serializer.data.get('id')}) только что был добавлен в Базу Данных!")
+        except IntegrityError:
+            logger.warning(f"Этот твит ({serializer.data.get('id')}) уже содержится в Базе Данных!")
+            serializer.update(Tweets.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
+        
+        user = tweet.user
+        user_to_save = from_v2_user(user)
+        logger.info(user_to_save)
+        serializer = UsersSerializer(data=user_to_save)
+        serializer.is_valid(raise_exception=True)
 
-            count += 1
-            logger.debug(count)
-            if count >= limit:
-                return
-
-            try:
-                serializer.save()
-                logger.info(f"Этот пользователь ({serializer.data.get('screen_name')}) только что был добавлен в Базу Данных!")
-            except IntegrityError:
-                logger.warning(f"Этот пользователь ({serializer.data.get('screen_name')}) уже содержится в Базе Данных!")
-                serializer.update(Users.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
-
-        else:
-            logger.debug(f"Stoped scrapping for #{hashtag_item}") 
+        count += 1
+        logger.debug(count)
+        if count >= limit:
             return
+
+        try:
+            serializer.save()
+            logger.info(f"Этот пользователь ({serializer.data.get('screen_name')}) только что был добавлен в Базу Данных!")
+        except IntegrityError:
+            logger.warning(f"Этот пользователь ({serializer.data.get('screen_name')}) уже содержится в Базе Данных!")
+            serializer.update(Users.objects.get(pk=serializer.data.get('id')), serializer.validated_data)
 
 
 def v2_download_user(screen_name):

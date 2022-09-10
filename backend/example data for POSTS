@@ -1,0 +1,46 @@
+#/special/v2/hashtags/
+{
+    "name": "small test",
+    "values": ["ole", "xsd"],
+    "mode_flag": 1
+}
+
+{
+    "name": "covid tweets",
+    "values": ["covid"],
+    "mode_flag": 1
+}
+
+{
+    "name": "many hashtags",
+    "values": ["протест", "ворывзаконе", "казанскийстрелок", "забивы", "забивыоф", "путин", "смертьмусорам", "томастиджейлейн", "путинвор", "офник", "стоник", "anarchism", "путинврагроссии", "шакромолодой", "schoolshoooter", "диланклиболт", "жизньворам", "анархопримитивизм", "чиновники"],
+    "mode_flag": 1
+}
+
+{
+    "name": "all hashtags",
+    "all_flag": true,
+    "mode_flag": 1
+}
+
+#/special/monitoring/hashtags/
+{
+    "values": ["ole", "xsd"],
+    "all_flag": false,
+    "mode_flag": 1,
+    "interval": 10 
+}
+
+#/special/monitoring/persons/
+{
+    "values": ["confusedlexa", "JoeBiden"],
+    "all_flag": false,
+    "mode_flag": 1,
+    "interval": 10 
+}
+
+{
+    "all_flag": true,
+    "mode_flag": 1,
+    "interval": 10 
+}

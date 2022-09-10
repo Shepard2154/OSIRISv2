@@ -15,7 +15,8 @@ services:
     container_name: osiris-redis
     image: redis:6.2-alpine
     restart: always
-    command: sh -c "sudo sysctl vm.overcommit_memory=1"
+    ports:
+      - "6379:6379"
     volumes:
       - ./data/redis:/var/lib/redis/data
 
@@ -40,7 +41,7 @@ services:
       container_name: osiris-celery-worker
       restart: always
       build: ./backend
-      command: sh -c "celery -A special worker -l info -P threads"
+      command: sh -c "celery -A special worker -l info -P threads --purge"
       depends_on:
         - django-backend
         - osiris-redis
