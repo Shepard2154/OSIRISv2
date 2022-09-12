@@ -213,52 +213,55 @@ class MonitoringHashtags(APIView):
             return Response('Укажите в POST-запросе поле mode_flag: 1 / 0')
         if interval == None:
             return Response('Укажите в POST-запросе поле interval (в часах): 1..n')
-        if hashtags_values or all_flag:
+        if all_flag == None and hashtags_values == None and mode_flag == 1:
+            return Response('Укажите в POST-запросе поле values: [hashtag_1, ... , hashtag_n] или all_flag: true / false')
+
+        try:
+            schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.HOURS)
+        except django_celery_beat.models.IntervalSchedule.MultipleObjectsReturned:
+            schedule = IntervalSchedule.objects.filter(every=interval, period=IntervalSchedule.HOURS).delete()
+            schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.HOURS)
+
+        if all_flag:
+            hashtags_values = Hashtags.objects.all().values('value')
+            hashtags_values = [hashtag.get('value') for hashtag in hashtags_values]
+
+        if mode_flag:
+            settings.REDIS_INSTANCE.set(name, 1)
             try:
-                schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.HOURS)
-            except django_celery_beat.models.IntervalSchedule.MultipleObjectsReturned:
-                schedule = IntervalSchedule.objects.filter(every=interval, period=IntervalSchedule.HOURS).delete()
-                schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.HOURS)
+                task = PeriodicTask.objects.create(
+                    interval=schedule, 
+                    name='scrape_hashtags', 
+                    task='special.tasks.scrape_hashtags', 
+                    args=json.dumps([hashtags_values, name]))
 
-            if all_flag:
-                hashtags_values = Hashtags.objects.all().values('value')
-                hashtags_values = [hashtag.get('value') for hashtag in hashtags_values]
+            except django.core.exceptions.ValidationError:
+                task = PeriodicTask.objects.filter(
+                    name='scrape_hashtags', 
+                    task='special.tasks.scrape_hashtags').delete()
+                    
+                task = PeriodicTask.objects.create(
+                    interval=schedule, 
+                    name='scrape_hashtags', 
+                    task='special.tasks.scrape_hashtags', 
+                    args=json.dumps([hashtags_values, name]))
 
-            if mode_flag:
-                try:
-                    task = PeriodicTask.objects.create(
-                        interval=schedule, 
-                        name='scrape_hashtags', 
-                        task='special.tasks.scrape_hashtags', 
-                        args=json.dumps([hashtags_values, name]))
+            task.save()
+            PeriodicTask.objects.update(last_run_at=None)
+            PeriodicTasks.changed(task)
 
-                except django.core.exceptions.ValidationError:
-                    task = PeriodicTask.objects.filter(
-                        name='scrape_hashtags', 
-                        task='special.tasks.scrape_hashtags').delete()
-                        
-                    task = PeriodicTask.objects.create(
-                        interval=schedule, 
-                        name='scrape_hashtags', 
-                        task='special.tasks.scrape_hashtags', 
-                        args=json.dumps([hashtags_values, name]))
+            return Response(str(task))
+        else:
+            task = PeriodicTask.objects.filter(name='scrape_hashtags', task='special.tasks.scrape_hashtags').delete()
+            scrape_hashtags.delay(hashtags_values, name)
 
-                task.save()
-                PeriodicTask.objects.update(last_run_at=None)
-                PeriodicTasks.changed(task)
+            active_celery_task = ActiveCeleryTasks.objects.get(pk=name)
+            scrape_hashtags.AsyncResult(active_celery_task.task_id).revoke()
+            active_celery_task.delete()
+            settings.REDIS_INSTANCE.set(name, 0)
+            logger.info(f"Task '{name}' was stopped")
 
-                return Response(str(task))
-            else:
-                task = PeriodicTask.objects.filter(name='scrape_hashtags', task='special.tasks.scrape_hashtags').delete()
-                scrape_hashtags.delay(hashtags_values, name)
-
-                active_celery_task = ActiveCeleryTasks.objects.get(pk=name)
-                scrape_hashtags.AsyncResult(active_celery_task.task_id).revoke()
-                active_celery_task.delete()
-                settings.REDIS_INSTANCE.set(name, 0)
-                logger.info(f"Task '{name}' was stopped")
-
-                return Response(f"Stopped celery task with name '{name}' and periodic {str(task)}")
+            return Response(f"Stopped celery task with name '{name}' and periodic {str(task)}")
 
 
 class MonitoringUsers(APIView):
@@ -274,51 +277,51 @@ class MonitoringUsers(APIView):
             return Response('Укажите в POST-запросе поле mode_flag: 1 / 0')
         if interval == None:
             return Response('Укажите в POST-запросе поле interval (в часах, целое число): 1..n')
-        if person_screen_names or all_flag:
-            if all_flag:
-                persons_screen_names = Users.objects.all().values('screen_name')
-                persons_screen_names = [person_screen_name.get('screen_name') for person_screen_name in persons_screen_names] 
-
-            # for person_screen_name in persons_screen_names:
-            #     settings.REDIS_INSTANCE.set(person_screen_name, mode_flag)
-
-            try:
-                schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.HOURS)
-            except django_celery_beat.models.IntervalSchedule.MultipleObjectsReturned:
-                schedule = IntervalSchedule.objects.filter(every=interval, period=IntervalSchedule.HOURS).delete()
-                schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.HOURS)
-
-            if mode_flag:
-                try:
-                    task = PeriodicTask.objects.create(
-                        interval=schedule, 
-                        name='scrape_persons', 
-                        task='special.tasks.scrape_persons', 
-                        args=json.dumps([person_screen_names]))
-
-                except django.core.exceptions.ValidationError:
-                    task = PeriodicTask.objects.filter(
-                        name='scrape_persons', 
-                        task='special.tasks.scrape_persons').delete()
-                        
-                    task = PeriodicTask.objects.create(
-                        interval=schedule, 
-                        name='scrape_persons', 
-                        task='special.tasks.scrape_persons', 
-                        args=json.dumps([person_screen_names]))
-
-                task.save()
-                PeriodicTask.objects.update(last_run_at=None)
-                PeriodicTasks.changed(task)
-
-                return Response(str(task))
-            else:
-                task = PeriodicTask.objects.filter(name='scrape_persons', task='special.tasks.scrape_persons').delete()
-                scrape_persons.delay(person_screen_names)
-
-                return Response(str(task)) 
-        else:
+        if all_flag == None and person_screen_names == None and mode_flag == 1:
             return Response('Укажите в POST-запросе поле values: [screen_name_1, ... , screen_name_n] или all_flag: true / false')
+
+        if all_flag:
+            persons_screen_names = Users.objects.all().values('screen_name')
+            persons_screen_names = [person_screen_name.get('screen_name') for person_screen_name in persons_screen_names] 
+
+        # for person_screen_name in persons_screen_names:
+        #     settings.REDIS_INSTANCE.set(person_screen_name, mode_flag)
+
+        try:
+            schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.HOURS)
+        except django_celery_beat.models.IntervalSchedule.MultipleObjectsReturned:
+            schedule = IntervalSchedule.objects.filter(every=interval, period=IntervalSchedule.HOURS).delete()
+            schedule = IntervalSchedule.objects.create(every=interval, period=IntervalSchedule.HOURS)
+
+        if mode_flag:
+            try:
+                task = PeriodicTask.objects.create(
+                    interval=schedule, 
+                    name='scrape_persons', 
+                    task='special.tasks.scrape_persons', 
+                    args=json.dumps([person_screen_names]))
+
+            except django.core.exceptions.ValidationError:
+                task = PeriodicTask.objects.filter(
+                    name='scrape_persons', 
+                    task='special.tasks.scrape_persons').delete()
+                    
+                task = PeriodicTask.objects.create(
+                    interval=schedule, 
+                    name='scrape_persons', 
+                    task='special.tasks.scrape_persons', 
+                    args=json.dumps([person_screen_names]))
+
+            task.save()
+            PeriodicTask.objects.update(last_run_at=None)
+            PeriodicTasks.changed(task)
+
+            return Response(str(task))
+        else:
+            task = PeriodicTask.objects.filter(name='scrape_persons', task='special.tasks.scrape_persons').delete()
+            scrape_persons.delay(person_screen_names)
+
+            return Response(str(task)) 
 
 
 class DatabaseToCSV(APIView):
